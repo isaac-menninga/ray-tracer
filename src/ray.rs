@@ -1,4 +1,4 @@
-mod Vector;
+use crate::vector::Vector;
 
 #[derive(Clone, Copy, Debug)]
 pub struct Ray {
