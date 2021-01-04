@@ -11,7 +11,7 @@ impl Ray {
         Ray { origin: o, direction: d }
     }
 
-    pub fn point_at_parameter(&self, t: f32) -> Vector {
-        self.origin + t * self.direction
+    pub fn line_to_p(&self, p: f32) -> Vector {
+        self.origin + p * self.direction
     }
 }
