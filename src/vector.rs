@@ -68,7 +68,6 @@ impl Mul<Vector> for f32 {
     }
 }
 
-/// elementwise multiplication
 impl Mul<Vector> for Vector {
     type Output = Vector;
     fn mul(self, v: Vector) -> Vector {
