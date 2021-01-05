@@ -7,8 +7,8 @@ pub struct Ray {
 }
 
 impl Ray {
-    pub fn new(o: Vector, d: Vector) -> Ray {
-        Ray { origin: o, direction: d }
+    pub fn new(o: Vector, d: Vector) -> Self {
+        Self { origin: o, direction: d }
     }
 
     pub fn line_to_p(&self, p: f32) -> Vector {
