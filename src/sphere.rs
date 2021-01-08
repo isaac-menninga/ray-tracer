@@ -26,7 +26,7 @@ impl Sphere {
         }
     }
 
-    pub fn ray_intersect(&self, r: Ray) -> Option<Hit> {
+    pub fn ray_intersect(&self, r: &Ray) -> Option<Hit> {
         // let oc = r.origin - self.center;
         // let hb = 2.0 * oc.dot(r.direction);
         // let c = oc.dot(oc) - self.radius * self.radius;

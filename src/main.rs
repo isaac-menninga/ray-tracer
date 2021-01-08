@@ -19,6 +19,6 @@ fn main() {
         sphere::Sphere::new(0.0, 0.0, 10.0, 1.0)
     ];
 
-    let scene = scene::Scene::new(c, objects, HEIGHT, WIDTH);
+    let scene = scene::Scene::new(c, objects, HEIGHT, WIDTH, 5.0, 5.0, 5.0);
     scene.render();
 }

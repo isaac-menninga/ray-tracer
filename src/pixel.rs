@@ -1,4 +1,5 @@
 use crate::vector::Vector;
+use crate::ray::Ray;
 use lodepng::RGB;
 
 pub struct Pixel {
@@ -12,5 +13,12 @@ impl Pixel {
             pos: Vector(x, y, 0.0),
             color: RGB { r: 0, g: 0, b: 0 }
         }
+    }
+
+    pub fn get_ray(&self, pos: Vector) -> Ray {
+        Ray::new(
+            self.pos, 
+            (pos - self.pos).to_unit_vector()
+        )
     }
 }

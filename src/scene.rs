@@ -1,6 +1,9 @@
 use crate::camera::Camera;
 use crate::sphere::Sphere;
+use crate::sphere::Hit;
 use crate::pixel::Pixel;
+use crate::vector::Vector;
+use crate::ray::Ray;
 use lodepng::RGB;
 
 pub struct Scene {
@@ -9,11 +12,12 @@ pub struct Scene {
     pub height: usize, 
     pub width: usize,
     pub pixels: Vec<Vec<Pixel>>,
-    pub render_pixels: Vec<RGB<u8>>
+    pub render_pixels: Vec<RGB<u8>>,
+    pub light: Vector
 }
 
 impl Scene {
-    pub fn new(c: Camera, o: [Sphere; 1], h: usize, w: usize) -> Self {
+    pub fn new(c: Camera, o: [Sphere; 1], h: usize, w: usize, light_x: f32, light_y: f32, light_z: f32) -> Self {
         let mut pixels: Vec<Vec<Pixel>> = Vec::new();
         let y_size = (h as f32) / 2.0;
         let x_size = (w as f32) / 2.0;
@@ -33,38 +37,59 @@ impl Scene {
             height: h,
             width: w,
             pixels: pixels,
-            render_pixels: Vec::new()
+            render_pixels: Vec::new(),
+            light: Vector(light_x, light_y, light_z)
         }
     }
 
     pub fn render(mut self) {
         for row in &self.pixels {
             for pixel in row {
-                let ray = self.camera.get_ray(pixel.pos);
-                let mut min = None;
+                let pixel_ray = self.camera.get_ray(pixel.pos);
+                let pixel_hit = self.check_hits(&pixel_ray);
 
-                for object in &self.objects {
-                    if let Some(hit) = object.ray_intersect(ray) {
-                        match min {
-                            None => min = Some(hit),
-                            Some(prev) => if hit.t < prev.t {
-                                min = Some(hit)
-                            }
-                        }
-                    }
-                }
-                match min {
-                    Some(_p) => {
-                        self.render_pixels.push(RGB { r: 100, g: 100, b: 255 });
-                    }
+                match pixel_hit {
                     None => {
                         self.render_pixels.push(RGB { r: 0, g: 0, b: 0 })
+                    }
+                    Some(p) => {
+                        let intersection = p.p;
+                        let object_normal = p.normal;
+                        let offset_point = intersection + 0.0005 * object_normal;
+                        let light_ray = Ray::new(offset_point, self.light.to_unit_vector());
+                        let light_hit = self.check_hits(&light_ray);
+
+                        match light_hit {
+                            None => {
+                                self.render_pixels.push(RGB { r: 200, g: 190, b: 190 })
+                            }
+                            Some(_p) => {
+                                self.render_pixels.push(RGB { r: 100, g: 100, b: 255 });
+                            }
+                        }
                     }
                 }
             }
         }
 
         self.make_png("out.png".to_string());
+    }
+
+    pub fn check_hits(&self, ray: &Ray) -> Option<Hit> {
+        let mut min = None;
+
+        for object in &self.objects {
+            if let Some(hit) = object.ray_intersect(ray) {
+                match min {
+                    None => min = Some(hit),
+                    Some(prev) => if hit.t < prev.t {
+                        min = Some(hit)
+                    }
+                }
+            }
+        }
+
+        return min
     }
 
     pub fn make_png(&self, fname: String) -> bool {
