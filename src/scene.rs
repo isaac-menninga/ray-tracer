@@ -1,8 +1,6 @@
 use crate::camera::Camera;
 use crate::sphere::Sphere;
-use crate::sphere::Hit;
 use crate::pixel::Pixel;
-use crate::vector::Vector;
 use lodepng::RGB;
 
 pub struct Scene {
@@ -17,12 +15,14 @@ pub struct Scene {
 impl Scene {
     pub fn new(c: Camera, o: [Sphere; 1], h: usize, w: usize) -> Self {
         let mut pixels: Vec<Vec<Pixel>> = Vec::new();
+        let y_size = (h as f32) / 2.0;
+        let x_size = (w as f32) / 2.0;
 
         for i in 0 .. h {
             let mut pixel_row: Vec<Pixel> = Vec::new();
 
             for j in 0 .. w {
-                pixel_row.push(Pixel::new(i as f32, j as f32))
+                pixel_row.push(Pixel::new((j as f32 - x_size) / w as f32, (i as f32 - y_size) / h as f32))
             }
             pixels.push(pixel_row)
         }
@@ -53,9 +53,8 @@ impl Scene {
                         }
                     }
                 }
-
                 match min {
-                    Some(p) => {
+                    Some(_p) => {
                         self.render_pixels.push(RGB { r: 100, g: 100, b: 255 });
                     }
                     None => {

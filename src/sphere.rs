@@ -27,15 +27,19 @@ impl Sphere {
     }
 
     pub fn ray_intersect(&self, r: Ray) -> Option<Hit> {
-        let oc = r.origin - self.center;
+        // let oc = r.origin - self.center;
+        // let hb = 2.0 * oc.dot(r.direction);
+        // let c = oc.dot(oc) - self.radius * self.radius;
+        // let discriminant = hb * hb - a * c;
+        
         let a = r.direction.dot(r.direction);
-        let hb = oc.dot(r.direction);
-        let c = oc.dot(oc) - self.radius * self.radius;
-        let discriminant = hb * hb - a * c;
+        let b = 2.0 * r.direction.dot(r.origin - self.center);
+        let c = (r.origin - self.center).dot(r.origin - self.center) - self.radius.powf(2.0);
+        let delta = b.powf(2.0) - 4.0 * c * a;
 
-        if discriminant > 0.0 {
-            let t1 = (-hb + discriminant.sqrt()) / 2.0;
-            let t2 = (-hb - discriminant.sqrt()) / 2.0;
+        if delta > 0.0 {
+            let t1 = (-b + delta.sqrt()) / 2.0;
+            let t2 = (-b - delta.sqrt()) / 2.0;
 
             if (t1 > 0.0) & (t2 > 0.0) {
                 let mut t = t1;
