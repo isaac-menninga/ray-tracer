@@ -1,5 +1,4 @@
 use std::ops::*;
-use rand::{Rand, Rng, random};
 
 #[derive(Clone, Copy, Debug)]
 pub struct Vector(pub f32, pub f32, pub f32);

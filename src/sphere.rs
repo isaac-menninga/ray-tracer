@@ -22,9 +22,6 @@ pub struct Sphere {
     shine: f32,
 }
 
-// Fix floating point bug
-const T_PRECISION: f32 = 0.00001;
-
 impl Sphere {
     pub fn new(pos: &Vector, r: f32, ambient: &Vector, diffuse: &Vector, specular: &Vector, shine: f32) -> Self {
         Self {

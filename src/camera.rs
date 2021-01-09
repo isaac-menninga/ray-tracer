@@ -1,5 +1,6 @@
 use crate::vector::Vector;
 use crate::ray::Ray;
+use rand::{Rand, Rng, random};
 
 pub struct Camera {
     pub position: Vector,
