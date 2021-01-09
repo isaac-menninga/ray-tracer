@@ -6,23 +6,34 @@ pub struct Hit {
     pub t: f32,
     pub p: Vector,
     pub normal: Vector,
-    // pub material: &'obj Material
+    pub ambient: Vector,
+    pub diffuse: Vector, 
+    pub specular: Vector,
+    pub shine: f32,
 }
 
 #[derive(Clone, Copy)]
 pub struct Sphere {
     center: Vector,
-    radius: f32
+    radius: f32,
+    ambient: Vector,
+    diffuse: Vector, 
+    specular: Vector,
+    shine: f32,
 }
 
 // Fix floating point bug
 const T_PRECISION: f32 = 0.00001;
 
 impl Sphere {
-    pub fn new(x: f32, y: f32, z: f32, r: f32) -> Self {
+    pub fn new(pos: &Vector, r: f32, ambient: &Vector, diffuse: &Vector, specular: &Vector, shine: f32) -> Self {
         Self {
-            center: Vector(x, y, z),
-            radius: r
+            center: Vector(pos.x(), pos.y(), pos.z()),
+            radius: r,
+            ambient: Vector(ambient.x(), ambient.y(), ambient.z()),
+            diffuse: Vector(diffuse.x(), diffuse.y(), diffuse.z()),
+            specular: Vector(specular.x(), specular.y(), specular.z()),
+            shine: shine,
         }
     }
 
@@ -47,14 +58,17 @@ impl Sphere {
                     t = t2;
                 }
 
-                if t >= T_PRECISION {
+                if t > 0.0 {
                     let intersection = r.line_to_p(t);
 
                     return Some(Hit {
                         t: t,
                         p: intersection,
                         normal: (intersection - self.center) / self.radius,
-                        // material: &*self.material
+                        ambient: self.ambient,
+                        diffuse: self.diffuse, 
+                        specular: self.specular,
+                        shine: self.shine,
                     })
                 }
             }
