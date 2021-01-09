@@ -11,7 +11,6 @@ mod scene;
 fn main() {
     const WIDTH: usize = 800;
     const HEIGHT: usize = 800;
-    const _NSAMPLES: usize = 100;
 
     let c = camera::Camera::new(0.0, 0.0, -1.0);
 

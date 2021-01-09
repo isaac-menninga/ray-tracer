@@ -19,6 +19,8 @@ pub struct Scene {
     pub specular: Vector,
 }
 
+const NSAMPLES: usize = 10;
+
 impl Scene {
     pub fn new(
         c: Camera, 
@@ -62,37 +64,52 @@ impl Scene {
     pub fn render(mut self) {
         for row in &self.pixels {
             for pixel in row {
-                let pixel_ray = self.camera.get_ray(pixel.pos);
-                let pixel_hit = self.check_hits(&pixel_ray);
+                let mut color: Vector = Vector(0.0, 0.0, 0.0);
 
-                match pixel_hit {
-                    None => {
-                        self.render_pixels.push(RGB { r: 0, g: 0, b: 0 })
-                    }
-                    Some(p) => {
-                        let intersection = p.p;
-                        let object_normal = p.normal;
-                        let offset_point = intersection + 0.0005 * object_normal;
-
-                        let light_ray = Ray::new(offset_point, self.light.to_unit_vector());
-                        let light_hit = self.check_hits(&light_ray);
-
-                        let obj_to_light = (self.light - intersection).to_unit_vector();
-
-                        match light_hit {
-                            None => {
-                                self.render_pixels.push(self.blinn_phong(p));
-                            }
-                            Some(p) => {
-                                if obj_to_light.length() < p.p.length() {
-                                    self.render_pixels.push(self.blinn_phong(p));
-                                } else {
-                                    self.render_pixels.push(RGB { r: 0, g: 0, b: 0 });
+                for _ in 0 .. NSAMPLES {
+                    let pixel_ray = self.camera.get_ray(pixel.pos);
+                    let pixel_hit = self.check_hits(&pixel_ray);
+    
+                    match pixel_hit {
+                        None => {
+                            color = color / 2.0;
+                        }
+                        Some(p) => {
+                            let intersection = p.p;
+                            let object_normal = p.normal;
+                            let offset_point = intersection + 0.0005 * object_normal;
+    
+                            let light_ray = Ray::new(offset_point, self.light.to_unit_vector());
+                            let light_hit = self.check_hits(&light_ray);
+    
+                            let obj_to_light = (self.light - intersection).to_unit_vector();
+    
+                            match light_hit {
+                                None => {
+                                    let sample_color = self.blinn_phong(p);
+                                    color = (color + Vector(
+                                        sample_color.r as f32,
+                                        sample_color.g as f32,
+                                        sample_color.b as f32
+                                    )) / 2.0;
+                                }
+                                Some(p) => {
+                                    if obj_to_light.length() < p.p.length() {
+                                        let sample_color = self.blinn_phong(p);
+                                        color = (color + Vector(
+                                            sample_color.r as f32,
+                                            sample_color.g as f32,
+                                            sample_color.b as f32
+                                        )) / 2.0;
+                                    } else {
+                                        color = color / 2.0;
+                                    }
                                 }
                             }
                         }
                     }
                 }
+                self.render_pixels.push(RGB { r: color.x() as u8, g: color.y() as u8, b: color.z() as u8 });
             }
         }
 

@@ -1,10 +1,12 @@
 use crate::vector::Vector;
 use crate::ray::Ray;
-use rand::{Rand, Rng, random};
+use rand::random;
 
 pub struct Camera {
     pub position: Vector,
 }
+
+pub const CAMERA_RADIUS: f32 = 0.0002;
 
 impl Camera {
     pub fn new(
@@ -18,9 +20,16 @@ impl Camera {
     }
 
     pub fn get_ray(&self, pos: Vector) -> Ray {
+        let r = CAMERA_RADIUS * random::<f32>().sqrt();
+        let theta = random::<f32>() * 2.0 * std::f32::consts::PI;
+        let x = self.position.x() + r * theta.cos();
+        let y = self.position.y() + r * theta.sin();
+
+        let random_pos = Vector(x, y, self.position.z());
+
         Ray::new(
-            self.position, 
-            (pos - self.position).to_unit_vector()
+            random_pos, 
+            (pos - random_pos).to_unit_vector()
         )
     }
 }
