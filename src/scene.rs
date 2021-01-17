@@ -3,7 +3,7 @@ use crate::sphere::Sphere;
 use crate::sphere::Hit;
 use crate::pixel::Pixel;
 use crate::vector::Vector;
-use crate::ray::Ray;
+use crate::ray::*;
 use lodepng::RGB;
 
 pub struct Scene {
@@ -19,7 +19,8 @@ pub struct Scene {
     pub specular: Vector,
 }
 
-const NSAMPLES: usize = 10;
+const NSAMPLES: usize = 100;
+const REFLECTION_DEPTH: usize = 3;
 
 impl Scene {
     pub fn new(
@@ -64,59 +65,124 @@ impl Scene {
     pub fn render(mut self) {
         for row in &self.pixels {
             for pixel in row {
-                let mut color: Vector = Vector(0.0, 0.0, 0.0);
+                let mut color = None;
+                let mut origin = self.camera.get_random_vector();
+                let mut direction = pixel.pos;
+                let mut reflection = 1.0;
+                let mut n_reflections = 0;
+                let mut last_hit;
 
-                for _ in 0 .. NSAMPLES {
-                    let pixel_ray = self.camera.get_ray(pixel.pos);
-                    let pixel_hit = self.check_hits(&pixel_ray);
-    
-                    match pixel_hit {
+                while n_reflections < REFLECTION_DEPTH {
+                    let ray = get_ray(origin, direction);
+                    let initial_hit = self.check_hits(&ray);
+
+                    let sampled_color = match initial_hit {
                         None => {
-                            color = color / 2.0;
+                            last_hit = None;
+                            (0.3 * Vector(0.5, 0.7, 1.0)) + (0.7 * Vector(1.0, 1.0, 1.0))
                         }
                         Some(p) => {
-                            let intersection = p.p;
-                            let object_normal = p.normal;
-                            let offset_point = intersection + 0.0005 * object_normal;
-    
-                            let light_ray = Ray::new(offset_point, self.light.to_unit_vector());
-                            let light_hit = self.check_hits(&light_ray);
-    
-                            let obj_to_light = (self.light - intersection).to_unit_vector();
-    
+                            // whether object hits something in the way of the light
+                            let light_hit = self.trace_ray(&p);
+
                             match light_hit {
+                                // if the light is closer than any object, use the hit above
                                 None => {
-                                    let sample_color = self.blinn_phong(p);
-                                    color = (color + Vector(
-                                        sample_color.r as f32,
-                                        sample_color.g as f32,
-                                        sample_color.b as f32
-                                    )) / 2.0;
+                                    last_hit = Some(p);
+                                    let s = self.blinn_phong(p);
+                                    s
                                 }
-                                Some(p) => {
-                                    if obj_to_light.length() < p.p.length() {
-                                        let sample_color = self.blinn_phong(p);
-                                        color = (color + Vector(
-                                            sample_color.r as f32,
-                                            sample_color.g as f32,
-                                            sample_color.b as f32
-                                        )) / 2.0;
-                                    } else {
-                                        color = color / 2.0;
-                                    }
+                                Some(_) => {
+                                    last_hit = None;
+                                    Vector(0.0, 0.0, 0.0)
                                 }
                             }
                         }
+                    };
+                    match last_hit {
+                        Some(k) => {
+                            match color {
+                                // if color already exists, average it with new color
+                                Some(c) => {
+                                    color = Some((c + (reflection * sampled_color)) / 2.0);
+                                }
+                                // if no color exists, it's the sampled color
+                                None => {
+                                    color = Some(sampled_color);
+                                }
+                            }
+                            n_reflections += 1;
+                            reflection = reflection * k.material.reflectiveness;
+                            origin = k.p + 0.0005 * k.normal.to_unit_vector();
+                            direction = self.reflected_vector(&k);
+                        }
+                        // if the last hit wasn't another object
+                        None => {
+                            match color {
+                                Some(_) => {}
+                                None => {
+                                    color = Some(sampled_color);
+                                }
+                            }
+                            break;
+                        }
                     }
                 }
-                self.render_pixels.push(RGB { r: color.x() as u8, g: color.y() as u8, b: color.z() as u8 });
+
+                match color {
+                    Some(c) => {
+                        let f = c.to_u8();
+                        self.render_pixels.push(RGB { r: f[0] as u8, g: f[1] as u8, b: f[2] as u8 });
+                    }
+                    None => {
+                        self.render_pixels.push(RGB { r: 0, g: 0, b: 0 });
+                    }
+                }
+                
             }
         }
 
         self.make_png("out.png".to_string());
     }
 
-    pub fn blinn_phong(&self, p: Hit) -> RGB<u8> {
+    pub fn reflected_vector(&self, hit: &Hit) -> Vector {
+        let v = hit.p;
+        let a = hit.normal;
+
+        v - ((2.0 * v.dot(a)) * a)
+    }
+
+    pub fn trace_ray(&self, hit: &Hit) -> Option<Hit> {
+        let intersection = hit.p;
+        let object_normal = hit.normal;
+        let offset_point = intersection + 0.0005 * object_normal;
+
+        let light_ray = Ray::new(offset_point, self.light.to_unit_vector());
+        let light_hit = self.check_hits(&light_ray);
+
+        let obj_to_light = (self.light - intersection).to_unit_vector();
+
+        match light_hit {
+            // no intersection between origin and light
+            // return color based on origin material
+            None => {
+                return None;
+            }
+            // some object is hit
+            Some(k) => {
+                // if object is further away than the light source
+                // then we assume it's the same as a no hit (above)
+                if obj_to_light.length() < k.p.length() {                            
+                    return None;
+                // if the object is closer than the light, than the point is completely shadowed.
+                } else {
+                    return Some(k);
+                }
+            }
+        }
+    }
+
+    pub fn blinn_phong(&self, p: Hit) -> Vector {
         let intersection = p.p;
         let object_normal = p.normal;
         let obj_to_light = (self.light - intersection).to_unit_vector();
@@ -125,14 +191,14 @@ impl Scene {
         let obj_to_camera = (self.camera.position - intersection).to_unit_vector();
 
         // ambient
-        color = color + (p.ambient * self.ambient);
+        color = color + (p.material.ambient * self.ambient);
         // diffuse
-        color = color + (obj_to_light.dot(object_normal.to_unit_vector()) * (p.diffuse * self.diffuse));
+        color = color + (obj_to_light.dot(object_normal.to_unit_vector()) * (p.material.diffuse * self.diffuse));
         // specular
         let h = (obj_to_light + obj_to_camera).to_unit_vector();
-        color = color + object_normal.dot(h).powf(p.shine / 4.0) * (p.specular * self.specular);
+        color = color + object_normal.dot(h).powf(p.material.shine / 4.0) * (p.material.specular * self.specular);
 
-        return RGB { r: (color.x() * 255.0) as u8, g: (color.y() * 255.0) as u8, b: (color.z() * 255.0) as u8 }
+        return color;
     }
 
     pub fn check_hits(&self, ray: &Ray) -> Option<Hit> {
@@ -154,13 +220,6 @@ impl Scene {
 
     pub fn make_png(&self, fname: String) -> bool {
         let filename = fname.clone();
-        let mut file_data: Vec<RGB<u8>> = Vec::new();
-
-        for i in 0 .. self.height {
-            for j in 0 .. self.width {
-                file_data.push(self.pixels[i as usize][j as usize].color)
-            }
-        }
 
         match lodepng::encode24_file(fname, &self.render_pixels, self.width, self.height) {
             Ok(()) => true,

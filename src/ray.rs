@@ -15,3 +15,10 @@ impl Ray {
         self.origin + p * self.direction
     }
 }
+
+pub fn get_ray(origin: Vector, destination: Vector) -> Ray {
+    Ray::new(
+        origin, 
+        (destination - origin).to_unit_vector()
+    )
+}

@@ -16,28 +16,31 @@ fn main() {
 
     let objects: [sphere::Sphere; 4] = [
         sphere::Sphere::new(
-            &vector::Vector(-0.5, -0.5, 8.0),
+            &vector::Vector(-0.75, -0.5, 8.0),
             1.0,
             &vector::Vector(0.1, 0.0, 0.0),
             &vector::Vector(0.7, 0.0, 0.0),
             &vector::Vector(1.0, 1.0, 1.0),
-            100.0
+            100.0,
+            1.0
         ),
         sphere::Sphere::new(
-            &vector::Vector(0.5, 0.5, 4.0),
+            &vector::Vector(0.5, 0.75, 4.0),
             0.5,
             &vector::Vector(0.0, 0.2, 0.0),
             &vector::Vector(0.0, 0.5, 0.0),
             &vector::Vector(1.0, 1.0, 1.0),
-            75.0
+            75.0,
+            0.6
         ),
         sphere::Sphere::new(
-            &vector::Vector(0.8, 0.8, 2.0),
-            0.5,
+            &vector::Vector(0.8, 0.1, 20.0),
+            1.5,
             &vector::Vector(0.1, 0.1, 0.0),
             &vector::Vector(0.5, 0.7, 0.0),
             &vector::Vector(1.0, 1.0, 1.0),
-            40.0
+            40.0,
+            0.0
         ),
         sphere::Sphere::new(
             &vector::Vector(0.0, 9000.0, 0.0),
@@ -45,7 +48,8 @@ fn main() {
             &vector::Vector(0.1, 0.1, 0.1),
             &vector::Vector(0.5, 0.5, 0.5),
             &vector::Vector(1.0, 1.0, 1.0),
-            70.0
+            70.0,
+            0.0
         ),
     ];
 
@@ -54,8 +58,8 @@ fn main() {
         objects,
         HEIGHT,
         WIDTH,
-        3.0,
-        -15.0,
+        10.0,
+        -25.0,
         0.0,
         &vector::Vector(1.0, 1.0, 1.0),
         &vector::Vector(1.0, 1.0, 1.0),
