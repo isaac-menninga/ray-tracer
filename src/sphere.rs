@@ -20,9 +20,9 @@ pub struct Hit {
 
 #[derive(Clone, Copy)]
 pub struct Sphere {
-    center: Vector,
-    radius: f32,
-    material: Material
+    pub center: Vector,
+    pub radius: f32,
+    pub material: Material
 }
 
 impl Sphere {

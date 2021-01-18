@@ -5,7 +5,7 @@ pub struct Camera {
     pub position: Vector,
 }
 
-pub const CAMERA_RADIUS: f32 = 0.0;
+pub const CAMERA_RADIUS: f32 = 0.0005;
 
 impl Camera {
     pub fn new(

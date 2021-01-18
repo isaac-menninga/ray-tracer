@@ -8,24 +8,25 @@ use lodepng::RGB;
 
 pub struct Scene {
     camera: Camera,
-    objects: [Sphere; 4],
+    objects: Vec<Sphere>,
     pub height: usize, 
     pub width: usize,
     pub pixels: Vec<Vec<Pixel>>,
-    pub render_pixels: Vec<RGB<u8>>,
     pub light: Vector,
     pub ambient: Vector,
     pub diffuse: Vector, 
     pub specular: Vector,
 }
 
-const NSAMPLES: usize = 100;
-const REFLECTION_DEPTH: usize = 3;
+const NSAMPLES: usize = 10;
+const REFLECTION_DEPTH: usize = 5;
+const OFFSET_AMOUNT: f32 = 0.002;
+const BACKGROUND_COLOR: Vector = Vector(0.4, 0.8, 0.9);
 
 impl Scene {
     pub fn new(
         c: Camera, 
-        o: [Sphere; 4], 
+        o: Vec<Sphere>, 
         h: usize, 
         w: usize, 
         light_x: f32, 
@@ -54,7 +55,6 @@ impl Scene {
             height: h,
             width: w,
             pixels: pixels,
-            render_pixels: Vec::new(),
             light: Vector(light_x, light_y, light_z),
             ambient: Vector(ambient.x(), ambient.y(), ambient.z()),
             diffuse: Vector(diffuse.x(), diffuse.y(), diffuse.z()),
@@ -63,85 +63,88 @@ impl Scene {
     }
 
     pub fn render(mut self) {
-        for row in &self.pixels {
-            for pixel in row {
-                let mut color = None;
-                let mut origin = self.camera.get_random_vector();
-                let mut direction = pixel.pos;
-                let mut reflection = 1.0;
-                let mut n_reflections = 0;
-                let mut last_hit;
-
-                while n_reflections < REFLECTION_DEPTH {
-                    let ray = get_ray(origin, direction);
-                    let initial_hit = self.check_hits(&ray);
-
-                    let sampled_color = match initial_hit {
+        for _ in 0 .. NSAMPLES {
+            for y in 0 .. self.height {
+                for x in 0 .. self.width {
+                    let pixel = &self.pixels[y][x];
+                    let mut color = None;
+                    let mut origin = self.camera.get_random_vector();
+                    let mut direction = pixel.pos;
+                    let mut reflection = 1.0;
+                    let mut n_reflections = 0;
+                    let mut last_hit;
+    
+                    while n_reflections < REFLECTION_DEPTH {
+                        let ray = get_ray(origin, direction);
+                        let initial_hit = self.check_hits(&ray);
+    
+                        let sampled_color = match initial_hit {
+                            None => {
+                                last_hit = None;
+                                BACKGROUND_COLOR
+                            }
+                            Some(p) => {
+                                // whether object hits something in the way of the light
+                                let light_hit = self.trace_ray(&p);
+    
+                                match light_hit {
+                                    // if the light is closer than any object, use the hit above
+                                    None => {
+                                        last_hit = Some(p);
+                                        let s = self.blinn_phong(p);
+                                        s
+                                    }
+                                    Some(_) => {
+                                        last_hit = None;
+                                        Vector(0.0, 0.0, 0.0)
+                                    }
+                                }
+                            }
+                        };
+                        match last_hit {
+                            Some(k) => {
+                                match color {
+                                    // if color already exists, average it with new color
+                                    Some(c) => {
+                                        color = Some((c + (reflection * sampled_color)) / 2.0);
+                                    }
+                                    // if no color exists, it's the sampled color
+                                    None => {
+                                        color = Some(sampled_color);
+                                    }
+                                }
+                                n_reflections += 1;
+                                reflection = reflection * k.material.reflectiveness;
+                                origin = k.p + OFFSET_AMOUNT * k.normal.to_unit_vector();
+                                direction = self.reflected_vector(&k);
+                            }
+                            // if the last hit wasn't another object
+                            None => {
+                                match color {
+                                    Some(_) => {}
+                                    None => {
+                                        color = Some(sampled_color);
+                                    }
+                                }
+                                break;
+                            }
+                        }
+                    }
+    
+                    match color {
+                        Some(c) => {
+                            let f = c.to_u8();
+                            self.pixels[y][x].color = Some(self.pixels[y][x].avg_colors(RGB { r: f[0] as u8, g: f[1] as u8, b: f[2] as u8 }));
+                        }
                         None => {
-                            last_hit = None;
-                            (0.3 * Vector(0.5, 0.7, 1.0)) + (0.7 * Vector(1.0, 1.0, 1.0))
-                        }
-                        Some(p) => {
-                            // whether object hits something in the way of the light
-                            let light_hit = self.trace_ray(&p);
-
-                            match light_hit {
-                                // if the light is closer than any object, use the hit above
-                                None => {
-                                    last_hit = Some(p);
-                                    let s = self.blinn_phong(p);
-                                    s
-                                }
-                                Some(_) => {
-                                    last_hit = None;
-                                    Vector(0.0, 0.0, 0.0)
-                                }
-                            }
-                        }
-                    };
-                    match last_hit {
-                        Some(k) => {
-                            match color {
-                                // if color already exists, average it with new color
-                                Some(c) => {
-                                    color = Some((c + (reflection * sampled_color)) / 2.0);
-                                }
-                                // if no color exists, it's the sampled color
-                                None => {
-                                    color = Some(sampled_color);
-                                }
-                            }
-                            n_reflections += 1;
-                            reflection = reflection * k.material.reflectiveness;
-                            origin = k.p + 0.0005 * k.normal.to_unit_vector();
-                            direction = self.reflected_vector(&k);
-                        }
-                        // if the last hit wasn't another object
-                        None => {
-                            match color {
-                                Some(_) => {}
-                                None => {
-                                    color = Some(sampled_color);
-                                }
-                            }
-                            break;
+                            self.pixels[y][x].color = Some(self.pixels[y][x].avg_colors(RGB { r: 0, g: 0, b: 0 }));
                         }
                     }
+                    
                 }
-
-                match color {
-                    Some(c) => {
-                        let f = c.to_u8();
-                        self.render_pixels.push(RGB { r: f[0] as u8, g: f[1] as u8, b: f[2] as u8 });
-                    }
-                    None => {
-                        self.render_pixels.push(RGB { r: 0, g: 0, b: 0 });
-                    }
-                }
-                
             }
         }
-
+        
         self.make_png("out.png".to_string());
     }
 
@@ -155,7 +158,7 @@ impl Scene {
     pub fn trace_ray(&self, hit: &Hit) -> Option<Hit> {
         let intersection = hit.p;
         let object_normal = hit.normal;
-        let offset_point = intersection + 0.0005 * object_normal;
+        let offset_point = intersection + OFFSET_AMOUNT * object_normal;
 
         let light_ray = Ray::new(offset_point, self.light.to_unit_vector());
         let light_hit = self.check_hits(&light_ray);
@@ -220,8 +223,22 @@ impl Scene {
 
     pub fn make_png(&self, fname: String) -> bool {
         let filename = fname.clone();
+        let mut render_pixels = Vec::new();
 
-        match lodepng::encode24_file(fname, &self.render_pixels, self.width, self.height) {
+        for y in 0 .. self.height {
+            for x in 0 .. self.width {
+                match self.pixels[y][x].color {
+                    Some(c) => {
+                        render_pixels.push(c);
+                    }
+                    None => {
+                        render_pixels.push(RGB { r: 0, g: 0, b: 0 });
+                    }
+                }
+            }
+        }
+
+        match lodepng::encode24_file(fname, &render_pixels, self.width, self.height) {
             Ok(()) => true,
             Err(err) => {
                 println!("Error writing file \"{}\": {}", filename, err);
