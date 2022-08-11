@@ -13,17 +13,17 @@ pub struct Scene {
     pub height: usize, 
     pub width: usize,
     pub pixels: Vec<Vec<Pixel>>,
-    pub light: Vector,
+    pub lights: Vec<Vector>,
     pub ambient: Vector,
     pub diffuse: Vector, 
     pub specular: Vector,
 }
 
-const NSAMPLES: usize = 10;
-const REFLECTION_DEPTH: usize = 3;
+const NSAMPLES: usize = 15;
+const REFLECTION_DEPTH: usize = 4;
 const OFFSET_AMOUNT: f32 = 0.002;
-const BACKGROUND_COLOR: Vector = Vector(0.4, 0.8, 0.9);
-const LIGHT_RADIUS: f32 = 0.2;
+const BACKGROUND_COLOR: Vector = Vector(0.1, 0.1, 0.1);
+const LIGHT_RADIUS: f32 = 0.3;
 const LIGHT_SAMPLES: usize = 3;
 
 impl Scene {
@@ -32,9 +32,7 @@ impl Scene {
         o: Vec<Sphere>, 
         h: usize, 
         w: usize, 
-        light_x: f32, 
-        light_y: f32, 
-        light_z: f32,
+        lights: &Vec<Vector>,
         ambient: &Vector,
         diffuse: &Vector,
         specular: &Vector,
@@ -58,7 +56,7 @@ impl Scene {
             height: h,
             width: w,
             pixels: pixels,
-            light: Vector(light_x, light_y, light_z),
+            lights: lights.to_vec(),
             ambient: Vector(ambient.x(), ambient.y(), ambient.z()),
             diffuse: Vector(diffuse.x(), diffuse.y(), diffuse.z()),
             specular: Vector(specular.x(), specular.y(), specular.z()),
@@ -66,92 +64,101 @@ impl Scene {
     }
 
     pub fn render(mut self) {
-        for _ in 0 .. NSAMPLES {
+        for f in 0 .. NSAMPLES {
+            println!("{}/100", (f as f32 / NSAMPLES as f32) * 100.0);
+
             for y in 0 .. self.height {
                 for x in 0 .. self.width {
                     let pixel = &self.pixels[y][x];
                     let mut color = None;
-                    let mut origin = self.camera.get_random_vector();
                     let mut direction = pixel.pos;
-                    let mut reflection = 1.0;
-                    let mut n_reflections = 0;
-                    let mut last_hit;
+                    let mut origin = self.camera.get_random_vector();
 
-                    for _ in 0 .. LIGHT_SAMPLES {
-                        let p = Vector(
-                            rand::random::<f32>(),
-                            rand::random::<f32>(),
-                            rand::random::<f32>()
-                        );
-                        let light_point = self.light + (LIGHT_RADIUS * p.to_unit_vector());
+                    for light in &self.lights {
+                        let l = light.clone();
 
-                        while n_reflections < REFLECTION_DEPTH {
-                            let ray = get_ray(origin, direction);
-                            let initial_hit = self.check_hits(&ray);
-        
-                            let sampled_color = match initial_hit {
-                                None => {
-                                    last_hit = None;
-                                    BACKGROUND_COLOR
-                                }
-                                Some(p) => {
-                                    // whether object hits something in the way of the light
-                                    let light_hit = self.trace_ray(&p, light_point);
-        
-                                    match light_hit {
-                                        // if the light is closer than any object, use the hit above
-                                        None => {
-                                            last_hit = Some(p);
-                                            let s = self.blinn_phong(p);
-                                            s
-                                        }
-                                        Some(_) => {
-                                            last_hit = None;
-                                            Vector(0.0, 0.0, 0.0)
+                        for _ in 0 .. LIGHT_SAMPLES {
+                            let mut reflection = 1.0;
+                            let mut n_reflections = 0;
+                            let mut last_hit;
+
+                            let p = Vector(
+                                rand::random::<f32>(),
+                                rand::random::<f32>(),
+                                rand::random::<f32>()
+                            );
+                            let light_point = l + (LIGHT_RADIUS * p.to_unit_vector());
+    
+                            while n_reflections < REFLECTION_DEPTH {
+                                let ray = get_ray(origin, direction);
+                                let initial_hit = self.check_hits(&ray);
+            
+                                let sampled_color = match initial_hit {
+                                    None => {
+                                        last_hit = None;
+                                        BACKGROUND_COLOR
+                                    }
+                                    Some(p) => {
+                                        // whether object hits something in the way of the light
+                                        let light_hit = self.trace_ray(&p, light_point);
+            
+                                        match light_hit {
+                                            // if the light is closer than any object, use the hit above
+                                            None => {
+                                                last_hit = Some(p);
+                                                let s = self.blinn_phong(p, l);
+                                                s
+                                            }
+                                            Some(_) => {
+                                                last_hit = None;
+                                                Vector(0.0, 0.0, 0.0)
+                                            }
                                         }
                                     }
-                                }
-                            };
-                            match last_hit {
-                                Some(k) => {
-                                    match color {
-                                        // if color already exists, average it with new color
-                                        Some(c) => {
-                                            color = Some((c + (reflection * sampled_color)) / 2.0);
+                                };
+                                match last_hit {
+                                    Some(k) => {
+                                        match color {
+                                            // if color already exists, average it with new color
+                                            Some(c) => {
+                                                color = Some((c + (reflection * sampled_color)) / 2.0);
+                                            }
+                                            // if no color exists, it's the sampled color
+                                            None => {
+                                                color = Some(sampled_color);
+                                            }
                                         }
-                                        // if no color exists, it's the sampled color
-                                        None => {
-                                            color = Some(sampled_color);
-                                        }
+                                        n_reflections += 1;
+                                        reflection = reflection * k.material.reflectiveness;
+                                        origin = k.p + OFFSET_AMOUNT * k.normal.to_unit_vector();
+                                        direction = self.reflected_vector(&k);
                                     }
-                                    n_reflections += 1;
-                                    reflection = reflection * k.material.reflectiveness;
-                                    origin = k.p + OFFSET_AMOUNT * k.normal.to_unit_vector();
-                                    direction = self.reflected_vector(&k);
-                                }
-                                // if the last hit wasn't another object
-                                None => {
-                                    match color {
-                                        Some(_) => {}
-                                        None => {
-                                            color = Some(sampled_color);
+                                    // if the last hit wasn't another object
+                                    None => {
+                                        match color {
+                                            Some(_) => {}
+                                            None => {
+                                                color = Some(sampled_color);
+                                            }
                                         }
+                                        break;
                                     }
-                                    break;
                                 }
                             }
+            
+                            match color {
+                                Some(c) => {
+                                    let f = c.to_u8();
+                                    self.pixels[y][x].color = Some(self.pixels[y][x].avg_colors(RGB { r: f[0] as u8, g: f[1] as u8, b: f[2] as u8 }));
+                                }
+                                None => {
+                                    self.pixels[y][x].color = Some(self.pixels[y][x].avg_colors(RGB { r: 0, g: 0, b: 0 }));
+                                }
+                            }    
                         }
-        
-                        match color {
-                            Some(c) => {
-                                let f = c.to_u8();
-                                self.pixels[y][x].color = Some(self.pixels[y][x].avg_colors(RGB { r: f[0] as u8, g: f[1] as u8, b: f[2] as u8 }));
-                            }
-                            None => {
-                                self.pixels[y][x].color = Some(self.pixels[y][x].avg_colors(RGB { r: 0, g: 0, b: 0 }));
-                            }
-                        }    
                     }
+
+                    
                 }
             }
         }
@@ -196,10 +203,10 @@ impl Scene {
         }
     }
 
-    pub fn blinn_phong(&self, p: Hit) -> Vector {
+    pub fn blinn_phong(&self, p: Hit, light: Vector) -> Vector {
         let intersection = p.p;
         let object_normal = p.normal;
-        let obj_to_light = (self.light - intersection).to_unit_vector();
+        let obj_to_light = (light - intersection).to_unit_vector();
 
         let mut color = Vector(0.0, 0.0, 0.0);
         let obj_to_camera = (self.camera.position - intersection).to_unit_vector();
