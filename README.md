@@ -6,7 +6,7 @@ This is a ray tracer written in Rust. I wrote this as a Rust learning exercise, 
 
 Here are some images I rendered with this program: 
 
-<img src="https://github.com/isaac-menninga/ray-tracer/blob/main/lil_spheres.png" width="200" />
+<img src="https://github.com/isaac-menninga/ray-tracer/blob/main/lil_spheres.png" width="300" />
 
-<img src="https://github.com/isaac-menninga/ray-tracer/blob/main/out.png" width="200" />
+<img src="https://github.com/isaac-menninga/ray-tracer/blob/main/out.png" width="300" />
 
