@@ -19,9 +19,9 @@ pub struct Scene {
     pub specular: Vector,
 }
 
-const NSAMPLES: usize = 15;
-const REFLECTION_DEPTH: usize = 4;
-const OFFSET_AMOUNT: f32 = 0.002;
+const NSAMPLES: usize = 5;
+const REFLECTION_DEPTH: usize = 10;
+const OFFSET_AMOUNT: f32 = 0.03;
 const BACKGROUND_COLOR: Vector = Vector(0.1, 0.1, 0.1);
 const LIGHT_RADIUS: f32 = 0.3;
 const LIGHT_SAMPLES: usize = 3;
@@ -87,7 +87,7 @@ impl Scene {
                                 rand::random::<f32>(),
                                 rand::random::<f32>()
                             );
-                            let light_point = l + (LIGHT_RADIUS * p.to_unit_vector());
+                            let light_point = (LIGHT_RADIUS * p.to_unit_vector());
     
                             while n_reflections < REFLECTION_DEPTH {
                                 let ray = get_ray(origin, direction);
@@ -103,14 +103,15 @@ impl Scene {
                                         let light_hit = self.trace_ray(&p, light_point);
             
                                         match light_hit {
-                                            // if the light is closer than any object, use the hit above
+                                            // no shadow
                                             None => {
                                                 last_hit = Some(p);
                                                 let s = self.blinn_phong(p, l);
                                                 s
                                             }
-                                            Some(_) => {
-                                                last_hit = None;
+                                            // object casting shadow
+                                            Some(p) => {
+                                                last_hit = Some(p);
                                                 Vector(0.0, 0.0, 0.0)
                                             }
                                         }
@@ -119,9 +120,9 @@ impl Scene {
                                 match last_hit {
                                     Some(k) => {
                                         match color {
-                                            // if color already exists, average it with new color
+                                            // if color already exists, add reflection to existing color
                                             Some(c) => {
-                                                color = Some((c + (reflection * sampled_color)) / 2.0);
+                                                color = Some(c + (reflection * sampled_color));
                                             }
                                             // if no color exists, it's the sampled color
                                             None => {
@@ -133,10 +134,12 @@ impl Scene {
                                         origin = k.p + OFFSET_AMOUNT * k.normal.to_unit_vector();
                                         direction = self.reflected_vector(&k);
                                     }
-                                    // if the last hit wasn't another object
+                                    // if the last hit wasn't an object
                                     None => {
                                         match color {
-                                            Some(_) => {}
+                                            Some(c) => {
+                                                color = Some(c);
+                                            }
                                             None => {
                                                 color = Some(sampled_color);
                                             }
@@ -157,8 +160,6 @@ impl Scene {
                             }    
                         }
                     }
-
-                    
                 }
             }
         }
