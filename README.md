@@ -1,9 +1,12 @@
-## Description 
+## Ray Tracer in Rust 
 
-`ray-tracer` is a ray tracing algorithm written in Rust. I used this as a good project to try and learn some Rust fundamentals, and to mess around with a neat algorithm. I'm really happy with the result! I also know there's a lot of ways to improve the code here. 
+This is a ray tracer written in Rust. I wrote this as a Rust learning exercise, and based it off a few tutorials (mainly, https://github.com/fralken/ray-tracing-in-one-weekend). I wanted to challenge myself as much as possible by loosely basing my code on examples, rather than following a well put together tutorial. The result is that the images are low resolution, with subpar quality. I'm really happy with the result of this exercise, but could certainly improve the code and the resulting images with some additional time. 
+
+## 
 
 Here are some images I rendered with this program: 
 
-![spheres on a dark background](https://github.com/isaac-menninga/ray-tracer/blob/main/lil_spheres.png)
+<img src="https://github.com/isaac-menninga/ray-tracer/blob/main/lil_spheres.png" width="200" />
 
-![randomly placed spheres](https://github.com/isaac-menninga/ray-tracer/blob/main/out.png)
+<img src="https://github.com/isaac-menninga/ray-tracer/blob/main/out.png" width="200" />
+
