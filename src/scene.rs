@@ -14,17 +14,16 @@ pub struct Scene {
     pub width: usize,
     pub pixels: Vec<Vec<Pixel>>,
     pub lights: Vec<Vector>,
-    pub ambient: Vector,
-    pub diffuse: Vector, 
-    pub specular: Vector,
 }
 
-const NSAMPLES: usize = 5;
-const REFLECTION_DEPTH: usize = 10;
+const NSAMPLES: usize = 2;
+const REFLECTION_DEPTH: usize = 3;
 const OFFSET_AMOUNT: f32 = 0.03;
-const BACKGROUND_COLOR: Vector = Vector(0.1, 0.1, 0.1);
+const BACKGROUND_COLOR: Vector = Vector(0.08, 0.082, 0.08);
 const LIGHT_RADIUS: f32 = 0.3;
-const LIGHT_SAMPLES: usize = 3;
+const LIGHT_SAMPLES: usize = 2;
+const LIGHT_COLOR: Vector = Vector(1.0, 1.0, 1.0);
+const LIGHT_POWER: f32 = 200.0;
 
 impl Scene {
     pub fn new(
@@ -33,9 +32,6 @@ impl Scene {
         h: usize, 
         w: usize, 
         lights: &Vec<Vector>,
-        ambient: &Vector,
-        diffuse: &Vector,
-        specular: &Vector,
     ) -> Self {
         let mut pixels: Vec<Vec<Pixel>> = Vec::new();
         let y_size = (h as f32) / 2.0;
@@ -57,108 +53,101 @@ impl Scene {
             width: w,
             pixels: pixels,
             lights: lights.to_vec(),
-            ambient: Vector(ambient.x(), ambient.y(), ambient.z()),
-            diffuse: Vector(diffuse.x(), diffuse.y(), diffuse.z()),
-            specular: Vector(specular.x(), specular.y(), specular.z()),
         }
     }
 
     pub fn render(mut self) {
-        for f in 0 .. NSAMPLES {
-            println!("{}/100", (f as f32 / NSAMPLES as f32) * 100.0);
+        for y in 0 .. self.height {
+            for x in 0 .. self.width {
+                let pixel = &self.pixels[y][x];
+                let mut color = None;
+                let mut direction = pixel.pos;
+                let mut origin = self.camera.get_random_vector();
 
-            for y in 0 .. self.height {
-                for x in 0 .. self.width {
-                    let pixel = &self.pixels[y][x];
-                    let mut color = None;
-                    let mut direction = pixel.pos;
-                    let mut origin = self.camera.get_random_vector();
+                for light in &self.lights {
+                    let l = light.clone();
 
-                    for light in &self.lights {
-                        let l = light.clone();
+                    for _ in 0 .. LIGHT_SAMPLES {
+                        let mut reflection = 1.0;
+                        let mut n_reflections = 0;
+                        let mut last_hit;
 
-                        for _ in 0 .. LIGHT_SAMPLES {
-                            let mut reflection = 1.0;
-                            let mut n_reflections = 0;
-                            let mut last_hit;
+                        let p = Vector(
+                            rand::random::<f32>(),
+                            rand::random::<f32>(),
+                            rand::random::<f32>()
+                        );
+                        let light_point = LIGHT_RADIUS * p.to_unit_vector();
 
-                            let p = Vector(
-                                rand::random::<f32>(),
-                                rand::random::<f32>(),
-                                rand::random::<f32>()
-                            );
-                            let light_point = (LIGHT_RADIUS * p.to_unit_vector());
-    
-                            while n_reflections < REFLECTION_DEPTH {
-                                let ray = get_ray(origin, direction);
-                                let initial_hit = self.check_hits(&ray);
-            
-                                let sampled_color = match initial_hit {
-                                    None => {
-                                        last_hit = None;
-                                        BACKGROUND_COLOR
-                                    }
-                                    Some(p) => {
-                                        // whether object hits something in the way of the light
-                                        let light_hit = self.trace_ray(&p, light_point);
-            
-                                        match light_hit {
-                                            // no shadow
-                                            None => {
-                                                last_hit = Some(p);
-                                                let s = self.blinn_phong(p, l);
-                                                s
-                                            }
-                                            // object casting shadow
-                                            Some(p) => {
-                                                last_hit = Some(p);
-                                                Vector(0.0, 0.0, 0.0)
-                                            }
+                        while n_reflections < REFLECTION_DEPTH {
+                            let ray = get_ray(origin, direction);
+                            let initial_hit = self.check_hits(&ray);
+        
+                            let sampled_color = match initial_hit {
+                                None => {
+                                    last_hit = None;
+                                    BACKGROUND_COLOR
+                                }
+                                Some(p) => {
+                                    // whether object hits something in the way of the light
+                                    let light_hit = self.trace_ray(&p, light_point);
+        
+                                    match light_hit {
+                                        // no shadow
+                                        None => {
+                                            last_hit = Some(p);
+                                            let s = self.reflection_model(p, l);
+                                            s
+                                        }
+                                        // object casting shadow
+                                        Some(p) => {
+                                            last_hit = Some(p);
+                                            Vector(0.0, 0.0, 0.0)
                                         }
                                     }
-                                };
-                                match last_hit {
-                                    Some(k) => {
-                                        match color {
-                                            // if color already exists, add reflection to existing color
-                                            Some(c) => {
-                                                color = Some(c + (reflection * sampled_color));
-                                            }
-                                            // if no color exists, it's the sampled color
-                                            None => {
-                                                color = Some(sampled_color);
-                                            }
+                                }
+                            };
+                            match last_hit {
+                                Some(k) => {
+                                    match color {
+                                        // if color already exists, add reflection to existing color
+                                        Some(c) => {
+                                            color = Some(c + (reflection * sampled_color));
                                         }
-                                        n_reflections += 1;
-                                        reflection = reflection * k.material.reflectiveness;
-                                        origin = k.p + OFFSET_AMOUNT * k.normal.to_unit_vector();
-                                        direction = self.reflected_vector(&k);
-                                    }
-                                    // if the last hit wasn't an object
-                                    None => {
-                                        match color {
-                                            Some(c) => {
-                                                color = Some(c);
-                                            }
-                                            None => {
-                                                color = Some(sampled_color);
-                                            }
+                                        // if no color exists, it's the sampled color
+                                        None => {
+                                            color = Some(sampled_color);
                                         }
-                                        break;
                                     }
+                                    n_reflections += 1;
+                                    reflection = reflection * k.material.reflectiveness;
+                                    origin = k.p + OFFSET_AMOUNT * k.normal.to_unit_vector();
+                                    direction = self.reflected_vector(&k);
+                                }
+                                // if the last hit wasn't an object
+                                None => {
+                                    match color {
+                                        Some(c) => {
+                                            color = Some(c);
+                                        }
+                                        None => {
+                                            color = Some(sampled_color);
+                                        }
+                                    }
+                                    break;
                                 }
                             }
-            
-                            match color {
-                                Some(c) => {
-                                    let f = c.to_u8();
-                                    self.pixels[y][x].color = Some(self.pixels[y][x].avg_colors(RGB { r: f[0] as u8, g: f[1] as u8, b: f[2] as u8 }));
-                                }
-                                None => {
-                                    self.pixels[y][x].color = Some(self.pixels[y][x].avg_colors(RGB { r: 0, g: 0, b: 0 }));
-                                }
-                            }    
                         }
+        
+                        match color {
+                            Some(c) => {
+                                let f = c.to_u8();
+                                self.pixels[y][x].color = Some(self.pixels[y][x].avg_colors(RGB { r: f[0] as u8, g: f[1] as u8, b: f[2] as u8 }));
+                            }
+                            None => {
+                                self.pixels[y][x].color = Some(self.pixels[y][x].avg_colors(RGB { r: 0, g: 0, b: 0 }));
+                            }
+                        }    
                     }
                 }
             }
@@ -204,21 +193,28 @@ impl Scene {
         }
     }
 
-    pub fn blinn_phong(&self, p: Hit, light: Vector) -> Vector {
-        let intersection = p.p;
-        let object_normal = p.normal;
-        let obj_to_light = (light - intersection).to_unit_vector();
+    pub fn reflection_model(&self, p: Hit, light: Vector) -> Vector {
+        // p.normal;
+        let mut obj_to_light = light - p.p;
+        let mut distance = obj_to_light.length();
+        distance = distance * distance;
+        obj_to_light = obj_to_light.to_unit_vector();
 
-        let mut color = Vector(0.0, 0.0, 0.0);
-        let obj_to_camera = (self.camera.position - intersection).to_unit_vector();
+        let mut lambertian = 0.0;
+        let mut specular = 0.0;
 
-        // ambient
-        color = color + (p.material.ambient * self.ambient);
-        // diffuse
-        color = color + (obj_to_light.dot(object_normal.to_unit_vector()) * (p.material.diffuse * self.diffuse));
-        // specular
-        let h = (obj_to_light + obj_to_camera).to_unit_vector();
-        color = color + object_normal.dot(h).powf(p.material.shine / 4.0) * (p.material.specular * self.specular);
+        if obj_to_light.dot(p.normal) > 0.0 {
+            lambertian = obj_to_light.dot(p.normal);
+
+            let view_dir = -p.p.to_unit_vector();
+
+            let half_dir = (obj_to_light + view_dir).to_unit_vector();
+            let specular_angle = half_dir.dot(p.normal); 
+            specular = specular_angle.powf(p.material.shine);
+        }
+
+        let mut color = p.material.ambient + LIGHT_POWER * lambertian * LIGHT_COLOR * p.material.diffuse / distance;
+        color = color + LIGHT_POWER * specular * LIGHT_COLOR / distance;
 
         return color;
     }

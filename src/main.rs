@@ -26,23 +26,34 @@ fn random_sphere(p: &vector::Vector, r: f32) -> sphere::Sphere {
     return sphere::Sphere::new(p, r, &ambient, &diffuse, &specular, shine, reflectiveness);
 }
 
+fn default_sphere(p: &vector::Vector, r: f32) -> sphere::Sphere {
+    let diffuse = vector::Vector(0.5, 0.0, 0.0);
+    let ambient = vector::Vector(0.1, 0.0, 0.0);
+    let specular = vector::Vector(1.0, 1.0, 1.0);
+    let shine = 16.0;
+    let reflectiveness = rand::random::<f32>() * 0.95;
+
+    return sphere::Sphere::new(p, r, &ambient, &diffuse, &specular, shine, reflectiveness);
+}
+
 fn main() {
-    const WIDTH: usize = 400;
-    const HEIGHT: usize = 400;
+    const WIDTH: usize = 800;
+    const HEIGHT: usize = 800;
     const N_SPHERES: i32 = 5;
     const RADIUS: f32 = 1.0;
-    const AMBIENT: &vector::Vector = &vector::Vector(1.0, 0.7, 0.7);
-    const DIFFUSE: &vector::Vector = &vector::Vector(1.0, 0.7, 0.7);
-    const SPECULAR: &vector::Vector = &vector::Vector(1.0, 0.7, 0.7);
-    const LIGHT_POS: vector::Vector = vector::Vector(40.0, -80.0, -100.0);
+    const LIGHT_POS: vector::Vector = vector::Vector(-1.0, 10.0, -10.0);
 
     let c = camera::Camera::new(0.0, 0.0, -1.0);
 
     let mut objects: Vec<sphere::Sphere> = Vec::new();
 
-    for _x in 0 .. N_SPHERES {
-        objects.push(random_sphere(&random_position(), RADIUS));
-    }
+    objects.push(default_sphere(&vector::Vector(-3.0, 0.0, 15.0), 1.5));
+    objects.push(default_sphere(&vector::Vector(3.0, 0.0, 7.0), 1.0));
+
+
+    // for _x in 0 .. N_SPHERES {
+    //     objects.push(random_sphere(&random_position(), RADIUS));
+    // }
 
     // TODO: actually make the multiple lights work :(
     let mut lights = Vec::new();
@@ -54,9 +65,6 @@ fn main() {
         HEIGHT,
         WIDTH,
         &lights,
-        AMBIENT,
-        DIFFUSE,
-        SPECULAR
     );
 
     scene.render();
