@@ -4,24 +4,36 @@ use std::ops::*;
 pub struct Vector(pub f32, pub f32, pub f32);
 
 impl Vector {
-    pub fn x(&self) -> f32 { self.0 }
-    pub fn y(&self) -> f32 { self.1 }
-    pub fn z(&self) -> f32 { self.2 }
+    pub fn x(&self) -> f32 {
+        self.0
+    }
+    pub fn y(&self) -> f32 {
+        self.1
+    }
+    pub fn z(&self) -> f32 {
+        self.2
+    }
 
     pub fn dot(&self, other: Vector) -> f32 {
         self.0 * other.0 + self.1 * other.1 + self.2 * other.2
     }
 
     pub fn cross(&self, other: Vector) -> Vector {
-        Vector(self.1 * other.2 - self.2 * other.1,
-             -(self.0 * other.2 - self.2 * other.0),
-             self.0 * other.1 - self.1 * other.0)
+        Vector(
+            self.1 * other.2 - self.2 * other.1,
+            -(self.0 * other.2 - self.2 * other.0),
+            self.0 * other.1 - self.1 * other.0,
+        )
     }
 
-    pub fn squared_length(self) -> f32 { self.dot(self) }
-    pub fn length(self) -> f32 { self.squared_length().sqrt() }
+    pub fn squared_length(self) -> f32 {
+        self.dot(self)
+    }
+    pub fn length(self) -> f32 {
+        self.squared_length().sqrt()
+    }
 
-    pub fn to_u8(&self) -> [u8;3] {
+    pub fn to_u8(&self) -> [u8; 3] {
         fn u(f: f32) -> u8 {
             if f < 0.0 {
                 0
@@ -39,8 +51,8 @@ impl Vector {
 
         lodepng::RGB {
             r: v[0],
-            g: v[1], 
-            b: v[2]
+            g: v[1],
+            b: v[2],
         }
     }
 
@@ -94,4 +106,3 @@ impl Div<f32> for Vector {
         (1.0 / r) * self
     }
 }
-

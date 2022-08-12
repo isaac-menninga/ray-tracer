@@ -3,12 +3,15 @@ use crate::vector::Vector;
 #[derive(Clone, Copy, Debug)]
 pub struct Ray {
     pub origin: Vector,
-    pub direction: Vector
+    pub direction: Vector,
 }
 
 impl Ray {
     pub fn new(o: Vector, d: Vector) -> Self {
-        Self { origin: o, direction: d }
+        Self {
+            origin: o,
+            direction: d,
+        }
     }
 
     pub fn line_to_p(&self, p: f32) -> Vector {
@@ -17,8 +20,5 @@ impl Ray {
 }
 
 pub fn get_ray(origin: Vector, destination: Vector) -> Ray {
-    Ray::new(
-        origin, 
-        (destination - origin).to_unit_vector()
-    )
+    Ray::new(origin, (destination - origin).to_unit_vector())
 }
