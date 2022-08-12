@@ -8,11 +8,13 @@ mod sphere;
 mod scene;
 
 static ASPECT_RATIO: f32 = 16.0 / 9.0;
-static VIEWPORT_WIDTH: i32 = 400;
+static VIEWPORT_WIDTH: i32 = 800;
+static FOCAL_LENGTH: f32 = 100.0;
 
-static REFLECTION_DEPTH: usize = 20;
+static ANTIALIAS_SAMPLES: i32 = 100;
+static REFLECTION_DEPTH: i32 = 50;
+
 static BACKGROUND_COLOR: vector::Vector = vector::Vector(0.5, 0.7, 1.0);
-static FOCAL_LENGTH: f32 = 50.0;
 
 fn main() {
     let c = camera::Camera::new(vector::Vector(0.0, 0.0, 0.0), VIEWPORT_WIDTH);

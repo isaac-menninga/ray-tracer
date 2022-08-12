@@ -39,7 +39,7 @@ impl Scene {
                 let v = j as f32 / (self.width - 1) as f32;
                 let origin = cam.position;
                 let direction = cam.lower_left_corner + v * cam.horizontal + u * cam.vertical - origin;
-                let color = self.antialias_color(100, 1.0, direction, origin);
+                let color = self.antialias_color(crate::ANTIALIAS_SAMPLES, 1.0, direction, origin);
 
                 self.pixels.push(color.to_rgb());
             }
@@ -83,7 +83,7 @@ impl Scene {
     
     }
 
-    pub fn color_model(&self, r: Ray, depth: usize) -> Vector {
+    pub fn color_model(&self, r: Ray, depth: i32) -> Vector {
         let obj_hit = self.check_hits(&r);
         let color: Vector;
 
@@ -111,7 +111,7 @@ impl Scene {
         }
     }
 
-    pub fn antialias_color(&self, n_samples: u8, offset_amount: f32, direction: Vector, origin: Vector) -> Vector {
+    pub fn antialias_color(&self, n_samples: i32, offset_amount: f32, direction: Vector, origin: Vector) -> Vector {
         let mut aa_color = Vector(0.0, 0.0, 0.0);
         for _ in 0 .. n_samples {
             let offset_direction = offset_amount * Vector(Self::random_in_range(-1.0, 1.0), Self::random_in_range(-1.0, 1.0), 0.0) + direction;
