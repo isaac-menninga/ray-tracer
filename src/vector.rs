@@ -34,6 +34,16 @@ impl Vector {
         [u(self.0), u(self.1), u(self.2)]
     }
 
+    pub fn to_rgb(&self) -> lodepng::RGB<u8> {
+        let v = self.to_u8();
+
+        lodepng::RGB {
+            r: v[0],
+            g: v[1], 
+            b: v[2]
+        }
+    }
+
     pub fn to_unit_vector(&self) -> Vector {
         *self / self.length()
     }

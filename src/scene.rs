@@ -1,39 +1,25 @@
 use crate::camera::Camera;
 use crate::sphere::Sphere;
 use crate::sphere::Hit;
-use crate::pixel::Pixel;
 use crate::vector::Vector;
 use crate::ray::*;
-
-use lodepng::RGB;
 
 pub struct Scene {
     camera: Camera,
     objects: Vec<Sphere>,
-    pub height: usize, 
-    pub width: usize,
-    pub pixels: Vec<Vec<Pixel>>,
+    pub height: i32, 
+    pub width: i32,
+    pub pixels: Vec<lodepng::RGB<u8>>,
 }
 
 impl Scene {
     pub fn new(
         c: Camera, 
-        o: Vec<Sphere>, 
-        h: usize, 
-        w: usize, 
+        o: Vec<Sphere>
     ) -> Self {
-        let mut pixels: Vec<Vec<Pixel>> = Vec::new();
-        let y_size = (h as f32) / 2.0;
-        let x_size = (w as f32) / 2.0;
-
-        for i in 0 .. h {
-            let mut pixel_row: Vec<Pixel> = Vec::new();
-
-            for j in 0 .. w {
-                pixel_row.push(Pixel::new((j as f32 - x_size) / w as f32, (i as f32 - y_size) / h as f32, c.position.z() + 1.0))
-            }
-            pixels.push(pixel_row)
-        }
+        let pixels: Vec<lodepng::RGB<u8>> = Vec::new();
+        let h = (crate::VIEWPORT_WIDTH as f32 / crate::ASPECT_RATIO) as i32;
+        let w = crate::VIEWPORT_WIDTH;
 
         Self {
             camera: c,
@@ -45,53 +31,19 @@ impl Scene {
     }
 
     pub fn render(mut self) {
-        for y in 0 .. self.height {
-            for x in 0 .. self.width {
-                let pixel = &self.pixels[y][x];
-
-                let direction = pixel.pos;
-                let origin = self.camera.position;
-
+        for i in (0 .. self.height).rev() {
+            for j in 0 .. self.width {
+                let cam = self.camera;
+                let u = i as f32 / (self.height - 1) as f32;
+                let v = j as f32 / (self.width - 1) as f32;
+                let origin = cam.position;
+                let direction = cam.lower_left_corner + v * cam.horizontal + u * cam.vertical - origin;
                 let color = self.antialias_color(40, 0.001, direction, origin);
 
-                let u = color.to_u8();
-
-                self.pixels[y][x].color = Some(RGB { 
-                    r: u[0] as u8, 
-                    g: u[1] as u8, 
-                    b: u[2] as u8 
-                });
+                self.pixels.push(color.to_rgb());
             }
         }
         self.make_png("out.png".to_string());
-    }
-
-    pub fn trace_ray(&self, hit: &Hit, light: Vector) -> Option<Hit> {
-        let intersection = hit.p;
-
-        let light_ray = Ray::new(intersection, light.to_unit_vector());
-        let light_hit = self.check_hits(&light_ray);
-
-        let obj_to_light = (light - intersection).to_unit_vector();
-
-        match light_hit {
-            // no intersection between origin and light
-            // return color based on origin material
-            None => {
-                return None;
-            }
-            // some object is hit
-            Some(k) => {
-                // if object is further away than the light source
-                // then we assume it's the same as a no hit (above)
-                if obj_to_light.length() < k.p.length() {                            
-                    return None;
-                // if the object is closer than the light, than the point is completely shadowed.
-                } else {
-                    return Some(k);
-                }
-            }
-        }
     }
 
     pub fn check_hits(&self, ray: &Ray) -> Option<Hit> {
@@ -132,7 +84,7 @@ impl Scene {
 
     pub fn color_model(&self, r: Ray, depth: usize) -> Vector {
         let obj_hit = self.check_hits(&r);
-        let mut color = Vector(0.0, 0.0, 0.0);
+        let color: Vector;
 
         match obj_hit {
             Some(h) => {
@@ -168,22 +120,8 @@ impl Scene {
 
     pub fn make_png(&self, fname: String) -> bool {
         let filename = fname.clone();
-        let mut render_pixels = Vec::new();
 
-        for y in 0 .. self.height {
-            for x in 0 .. self.width {
-                match self.pixels[y][x].color {
-                    Some(c) => {
-                        render_pixels.push(c);
-                    }
-                    None => {
-                        render_pixels.push(RGB { r: 0, g: 0, b: 0 });
-                    }
-                }
-            }
-        }
-
-        match lodepng::encode24_file(fname, &render_pixels, self.width, self.height) {
+        match lodepng::encode24_file(fname, &self.pixels, self.width as usize, self.height as usize) {
             Ok(()) => true,
             Err(err) => {
                 println!("Error writing file \"{}\": {}", filename, err);
