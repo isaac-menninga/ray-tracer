@@ -56,7 +56,7 @@ impl Sphere {
                     t = t2;
                 }
 
-                if t > 0.0 {
+                if t > 0.0003 {
                     let intersection = r.line_to_p(t);
 
                     return Some(Hit {
