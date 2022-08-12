@@ -13,7 +13,6 @@ pub struct Scene {
     pub height: usize, 
     pub width: usize,
     pub pixels: Vec<Vec<Pixel>>,
-    pub lights: Vec<Vector>,
 }
 
 impl Scene {
@@ -22,7 +21,6 @@ impl Scene {
         o: Vec<Sphere>, 
         h: usize, 
         w: usize, 
-        lights: &Vec<Vector>,
     ) -> Self {
         let mut pixels: Vec<Vec<Pixel>> = Vec::new();
         let y_size = (h as f32) / 2.0;
@@ -32,7 +30,7 @@ impl Scene {
             let mut pixel_row: Vec<Pixel> = Vec::new();
 
             for j in 0 .. w {
-                pixel_row.push(Pixel::new((j as f32 - x_size) / w as f32, (i as f32 - y_size) / h as f32))
+                pixel_row.push(Pixel::new((j as f32 - x_size) / w as f32, (i as f32 - y_size) / h as f32, c.position.z() + 1.0))
             }
             pixels.push(pixel_row)
         }
@@ -43,7 +41,6 @@ impl Scene {
             height: h,
             width: w,
             pixels: pixels,
-            lights: lights.to_vec(),
         }
     }
 
@@ -51,109 +48,26 @@ impl Scene {
         for y in 0 .. self.height {
             for x in 0 .. self.width {
                 let pixel = &self.pixels[y][x];
-                let mut color = None;
-                let mut direction = pixel.pos;
-                let mut origin = self.camera.position;
 
-                let l = self.lights[0].clone();
+                let direction = pixel.pos;
+                let origin = self.camera.position;
 
-                let mut reflection = 1.0;
-                let mut n_reflections = 0;
-                let mut last_hit;
+                let color = self.antialias_color(40, 0.001, direction, origin);
 
-                while n_reflections < crate::REFLECTION_DEPTH {
-                    let ray = get_ray(origin, direction);
-                    let initial_hit = self.check_hits(&ray);
+                let u = color.to_u8();
 
-                    let sampled_color = match initial_hit {
-                        None => {
-                            last_hit = None;
-                            crate::BACKGROUND_COLOR
-                        }
-                        Some(p) => {
-                            // whether object hits something in the way of the light
-                            let light_hit = self.trace_ray(&p, l);
-
-                            match light_hit {
-                                // no shadow
-                                None => {
-                                    last_hit = Some(p);
-                                    let s = self.reflection_model(p, l);
-                                    s
-                                }
-                                // object casting shadow
-                                Some(p) => {
-                                    last_hit = None;
-                                    crate::BACKGROUND_COLOR
-                                }
-                            }
-                        }
-                    };
-                    match last_hit {
-                        Some(k) => {
-                            match color {
-                                // if color already exists, add reflection to existing color
-                                Some(c) => {
-                                    color = Some(c + (reflection * sampled_color));
-                                }
-                                // if no color exists, it's the sampled color
-                                None => {
-                                    color = Some(sampled_color);
-                                }
-                            }
-                            n_reflections += 1;
-                            reflection = reflection * k.material.reflectiveness;
-                            origin = k.p;
-                            direction = self.reflected_vector(&k);
-                        }
-                        // if the last hit wasn't an object
-                        None => {
-                            match color {
-                                Some(c) => {
-                                    color = Some(c);
-                                }
-                                None => {
-                                    color = Some(sampled_color);
-                                }
-                            }
-                            break;
-                        }
-                    }
-                }
-
-                match color {
-                    Some(c) => {
-                        // println!("{} {} {}", c.0, c.1, c.2);
-
-                        self.pixels[y][x].color = Some(RGB { 
-                            r: c.0 as u8, 
-                            g: c.1 as u8, 
-                            b: c.2 as u8 
-                        });
-                    }
-                    None => {
-                        self.pixels[y][x].color = Some(RGB { 
-                            r: crate::BACKGROUND_COLOR.0 as u8,
-                            g: crate::BACKGROUND_COLOR.1 as u8,
-                            b: crate::BACKGROUND_COLOR.2 as u8 
-                        });
-                    }
-                }
+                self.pixels[y][x].color = Some(RGB { 
+                    r: u[0] as u8, 
+                    g: u[1] as u8, 
+                    b: u[2] as u8 
+                });
             }
         }
         self.make_png("out.png".to_string());
     }
 
-    pub fn reflected_vector(&self, hit: &Hit) -> Vector {
-        let v = hit.p;
-        let a = hit.normal;
-
-        v - ((2.0 * v.dot(a)) * a)
-    }
-
     pub fn trace_ray(&self, hit: &Hit, light: Vector) -> Option<Hit> {
         let intersection = hit.p;
-        let object_normal = hit.normal;
 
         let light_ray = Ray::new(intersection, light.to_unit_vector());
         let light_hit = self.check_hits(&light_ray);
@@ -180,32 +94,6 @@ impl Scene {
         }
     }
 
-    pub fn reflection_model(&self, p: Hit, light: Vector) -> Vector {
-        // p.normal;
-        let mut obj_to_light = light - p.p;
-        let mut distance = obj_to_light.length();
-        distance = distance * distance;
-        obj_to_light = obj_to_light.to_unit_vector();
-
-        let mut lambertian = 0.0;
-        let mut specular = 0.0;
-
-        if obj_to_light.dot(p.normal) > 0.0 {
-            lambertian = obj_to_light.dot(p.normal);
-
-            let view_dir = -p.p.to_unit_vector();
-
-            let half_dir = (obj_to_light + view_dir).to_unit_vector();
-            let specular_angle = half_dir.dot(p.normal); 
-            specular = specular_angle.powf(p.material.shine);
-        }
-
-        let mut color = p.material.ambient + crate::LIGHT_POWER * lambertian * crate::LIGHT_COLOR * p.material.diffuse / distance;
-        color = color + crate::LIGHT_POWER * specular * crate::LIGHT_COLOR / distance;
-
-        return color;
-    }
-
     pub fn check_hits(&self, ray: &Ray) -> Option<Hit> {
         let mut min = None;
 
@@ -221,6 +109,61 @@ impl Scene {
         }
 
         return min
+    }
+
+    pub fn random_in_range(min: f32, max: f32) -> f32 {
+        return rand::random::<f32>() * max + min;
+    }
+
+    pub fn random_vector_in_unit_sphere() -> Vector {
+        let vec = Vector(
+            Self::random_in_range(-1.0, 1.0),
+            Self::random_in_range(-1.0, 1.0),
+            Self::random_in_range(-1.0, 1.0),
+        );
+
+        if vec.length() <= 1.0 {
+            return vec.to_unit_vector();
+        } else {
+            return Self::random_vector_in_unit_sphere();
+        }
+    
+    }
+
+    pub fn color_model(&self, r: Ray, depth: usize) -> Vector {
+        let obj_hit = self.check_hits(&r);
+        let mut color = Vector(0.0, 0.0, 0.0);
+
+        match obj_hit {
+            Some(h) => {
+                if crate::REFLECTION_DEPTH > depth {
+                    let d = h.p + h.normal + Self::random_vector_in_unit_sphere();
+                    color = 0.5 * self.color_model(get_ray(h.p, d - h.p), depth + 1);
+                } else {
+                    color = Vector(0.0, 0.0, 0.0);
+                }
+                return color;
+            }
+            None => {
+                let unit_direction = r.direction.to_unit_vector();
+                let t = 0.5 * (unit_direction.y() + 1.0);
+                let color =  (1.0 - t) * Vector(1.0, 1.0, 1.0) + t * crate::BACKGROUND_COLOR;
+
+                return color;
+            }
+        }
+    }
+
+    pub fn antialias_color(&self, n_samples: u8, offset_amount: f32, direction: Vector, origin: Vector) -> Vector {
+        let mut aa_color = Vector(0.0, 0.0, 0.0);
+        for _ in 0 .. n_samples {
+            let offset_direction = offset_amount * Vector(Self::random_in_range(-1.0, 1.0), Self::random_in_range(-1.0, 1.0), 0.0) + direction;
+            let ray = get_ray(origin, offset_direction);
+            let c = self.color_model(ray, 0);
+
+            aa_color = aa_color + (1.0 / n_samples as f32) * c;
+        }
+        return aa_color;
     }
 
     pub fn make_png(&self, fname: String) -> bool {
