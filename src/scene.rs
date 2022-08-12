@@ -16,15 +16,6 @@ pub struct Scene {
     pub lights: Vec<Vector>,
 }
 
-const NSAMPLES: usize = 2;
-const REFLECTION_DEPTH: usize = 3;
-const OFFSET_AMOUNT: f32 = 0.03;
-const BACKGROUND_COLOR: Vector = Vector(0.08, 0.082, 0.08);
-const LIGHT_RADIUS: f32 = 0.3;
-const LIGHT_SAMPLES: usize = 2;
-const LIGHT_COLOR: Vector = Vector(1.0, 1.0, 1.0);
-const LIGHT_POWER: f32 = 200.0;
-
 impl Scene {
     pub fn new(
         c: Camera, 
@@ -62,97 +53,94 @@ impl Scene {
                 let pixel = &self.pixels[y][x];
                 let mut color = None;
                 let mut direction = pixel.pos;
-                let mut origin = self.camera.get_random_vector();
+                let mut origin = self.camera.position;
 
-                for light in &self.lights {
-                    let l = light.clone();
+                let l = self.lights[0].clone();
 
-                    for _ in 0 .. LIGHT_SAMPLES {
-                        let mut reflection = 1.0;
-                        let mut n_reflections = 0;
-                        let mut last_hit;
+                let mut reflection = 1.0;
+                let mut n_reflections = 0;
+                let mut last_hit;
 
-                        let p = Vector(
-                            rand::random::<f32>(),
-                            rand::random::<f32>(),
-                            rand::random::<f32>()
-                        );
-                        let light_point = LIGHT_RADIUS * p.to_unit_vector();
+                while n_reflections < crate::REFLECTION_DEPTH {
+                    let ray = get_ray(origin, direction);
+                    let initial_hit = self.check_hits(&ray);
 
-                        while n_reflections < REFLECTION_DEPTH {
-                            let ray = get_ray(origin, direction);
-                            let initial_hit = self.check_hits(&ray);
-        
-                            let sampled_color = match initial_hit {
+                    let sampled_color = match initial_hit {
+                        None => {
+                            last_hit = None;
+                            crate::BACKGROUND_COLOR
+                        }
+                        Some(p) => {
+                            // whether object hits something in the way of the light
+                            let light_hit = self.trace_ray(&p, l);
+
+                            match light_hit {
+                                // no shadow
                                 None => {
-                                    last_hit = None;
-                                    BACKGROUND_COLOR
+                                    last_hit = Some(p);
+                                    let s = self.reflection_model(p, l);
+                                    s
                                 }
+                                // object casting shadow
                                 Some(p) => {
-                                    // whether object hits something in the way of the light
-                                    let light_hit = self.trace_ray(&p, light_point);
-        
-                                    match light_hit {
-                                        // no shadow
-                                        None => {
-                                            last_hit = Some(p);
-                                            let s = self.reflection_model(p, l);
-                                            s
-                                        }
-                                        // object casting shadow
-                                        Some(p) => {
-                                            last_hit = Some(p);
-                                            Vector(0.0, 0.0, 0.0)
-                                        }
-                                    }
-                                }
-                            };
-                            match last_hit {
-                                Some(k) => {
-                                    match color {
-                                        // if color already exists, add reflection to existing color
-                                        Some(c) => {
-                                            color = Some(c + (reflection * sampled_color));
-                                        }
-                                        // if no color exists, it's the sampled color
-                                        None => {
-                                            color = Some(sampled_color);
-                                        }
-                                    }
-                                    n_reflections += 1;
-                                    reflection = reflection * k.material.reflectiveness;
-                                    origin = k.p + OFFSET_AMOUNT * k.normal.to_unit_vector();
-                                    direction = self.reflected_vector(&k);
-                                }
-                                // if the last hit wasn't an object
-                                None => {
-                                    match color {
-                                        Some(c) => {
-                                            color = Some(c);
-                                        }
-                                        None => {
-                                            color = Some(sampled_color);
-                                        }
-                                    }
-                                    break;
+                                    last_hit = None;
+                                    crate::BACKGROUND_COLOR
                                 }
                             }
                         }
-        
-                        match color {
-                            Some(c) => {
-                                let f = c.to_u8();
-                                self.pixels[y][x].color = Some(self.pixels[y][x].avg_colors(RGB { r: f[0] as u8, g: f[1] as u8, b: f[2] as u8 }));
+                    };
+                    match last_hit {
+                        Some(k) => {
+                            match color {
+                                // if color already exists, add reflection to existing color
+                                Some(c) => {
+                                    color = Some(c + (reflection * sampled_color));
+                                }
+                                // if no color exists, it's the sampled color
+                                None => {
+                                    color = Some(sampled_color);
+                                }
                             }
-                            None => {
-                                self.pixels[y][x].color = Some(self.pixels[y][x].avg_colors(RGB { r: 0, g: 0, b: 0 }));
+                            n_reflections += 1;
+                            reflection = reflection * k.material.reflectiveness;
+                            origin = k.p;
+                            direction = self.reflected_vector(&k);
+                        }
+                        // if the last hit wasn't an object
+                        None => {
+                            match color {
+                                Some(c) => {
+                                    color = Some(c);
+                                }
+                                None => {
+                                    color = Some(sampled_color);
+                                }
                             }
-                        }    
+                            break;
+                        }
+                    }
+                }
+
+                match color {
+                    Some(c) => {
+                        // println!("{} {} {}", c.0, c.1, c.2);
+
+                        self.pixels[y][x].color = Some(RGB { 
+                            r: c.0 as u8, 
+                            g: c.1 as u8, 
+                            b: c.2 as u8 
+                        });
+                    }
+                    None => {
+                        self.pixels[y][x].color = Some(RGB { 
+                            r: crate::BACKGROUND_COLOR.0 as u8,
+                            g: crate::BACKGROUND_COLOR.1 as u8,
+                            b: crate::BACKGROUND_COLOR.2 as u8 
+                        });
                     }
                 }
             }
         }
-        
         self.make_png("out.png".to_string());
     }
 
@@ -166,9 +154,8 @@ impl Scene {
     pub fn trace_ray(&self, hit: &Hit, light: Vector) -> Option<Hit> {
         let intersection = hit.p;
         let object_normal = hit.normal;
-        let offset_point = intersection + OFFSET_AMOUNT * object_normal;
 
-        let light_ray = Ray::new(offset_point, light.to_unit_vector());
+        let light_ray = Ray::new(intersection, light.to_unit_vector());
         let light_hit = self.check_hits(&light_ray);
 
         let obj_to_light = (light - intersection).to_unit_vector();
@@ -213,8 +200,8 @@ impl Scene {
             specular = specular_angle.powf(p.material.shine);
         }
 
-        let mut color = p.material.ambient + LIGHT_POWER * lambertian * LIGHT_COLOR * p.material.diffuse / distance;
-        color = color + LIGHT_POWER * specular * LIGHT_COLOR / distance;
+        let mut color = p.material.ambient + crate::LIGHT_POWER * lambertian * crate::LIGHT_COLOR * p.material.diffuse / distance;
+        color = color + crate::LIGHT_POWER * specular * crate::LIGHT_COLOR / distance;
 
         return color;
     }

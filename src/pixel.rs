@@ -13,18 +13,4 @@ impl Pixel {
             color: None
         }
     }
-    pub fn avg_colors(&self, b: RGB<u8>) -> RGB<u8> {
-        match self.color {
-            Some(c) => {
-                return RGB {
-                    r: (c.r / 2) + (b.r / 2),
-                    g: (c.g / 2) + (b.g / 2),
-                    b: (c.b / 2) + (b.b / 2),
-                };
-            }
-            None => {
-                return b;
-            }
-        };
-    }
 }
