@@ -1,30 +1,32 @@
 use crate::vector::Vector;
-use rand::random;
 
+#[derive(Clone, Copy)]
 pub struct Camera {
     pub position: Vector,
+    pub height: i32,
+    pub width: i32,
+    pub vertical: Vector,
+    pub horizontal: Vector,
+    pub focal_length: f32,
+    pub lower_left_corner: Vector
 }
-
-pub const CAMERA_RADIUS: f32 = 0.0005;
 
 impl Camera {
     pub fn new(
-        x: f32,
-        y: f32,
-        z: f32,
+        p: Vector,
+        w: i32
     ) -> Self {        
-        Self {
-            position: Vector(x, y, z),
-        }
-    }
+        let mut c = Self {
+            position: p,
+            height: 2,
+            width: (2 as f32 * crate::ASPECT_RATIO) as i32,
+            vertical: Vector(0.0, w as f32 / crate::ASPECT_RATIO, 0.0),
+            horizontal: Vector(w as f32, 0.0, 0.0),
+            focal_length: crate::FOCAL_LENGTH,
+            lower_left_corner: Vector(0.0, 0.0, 0.0)
+        };
 
-    pub fn get_random_vector(&self) -> Vector {
-        let r = CAMERA_RADIUS * random::<f32>().sqrt();
-        let theta = random::<f32>() * 2.0 * std::f32::consts::PI;
-
-        let x = self.position.x() + r * theta.cos();
-        let y = self.position.y() + r * theta.sin();
-
-        Vector(x, y, self.position.z())
+        c.lower_left_corner = c.position - c.vertical / 2.0 - c.horizontal / 2.0 - Vector(0.0, 0.0, crate::FOCAL_LENGTH);
+        c
     }
 }
