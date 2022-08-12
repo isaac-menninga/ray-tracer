@@ -47,6 +47,10 @@ impl Vector {
     pub fn to_unit_vector(&self) -> Vector {
         *self / self.length()
     }
+
+    pub fn print(&self) {
+        println!("{} {} {}", self.x(), self.y(), self.x());
+    }
 }
 
 impl Neg for Vector {
