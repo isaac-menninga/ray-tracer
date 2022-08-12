@@ -2,6 +2,7 @@ use crate::camera::Camera;
 use crate::sphere::Sphere;
 use crate::sphere::Hit;
 use crate::vector::Vector;
+use crate::rand::Rng;
 use crate::ray::*;
 
 pub struct Scene {
@@ -38,7 +39,7 @@ impl Scene {
                 let v = j as f32 / (self.width - 1) as f32;
                 let origin = cam.position;
                 let direction = cam.lower_left_corner + v * cam.horizontal + u * cam.vertical - origin;
-                let color = self.antialias_color(40, 0.001, direction, origin);
+                let color = self.antialias_color(100, 1.0, direction, origin);
 
                 self.pixels.push(color.to_rgb());
             }
@@ -64,7 +65,7 @@ impl Scene {
     }
 
     pub fn random_in_range(min: f32, max: f32) -> f32 {
-        return rand::random::<f32>() * max + min;
+        return rand::thread_rng().gen_range(min,max);
     }
 
     pub fn random_vector_in_unit_sphere() -> Vector {
@@ -94,6 +95,10 @@ impl Scene {
                 } else {
                     color = Vector(0.0, 0.0, 0.0);
                 }
+
+                // color with normals
+                // color = 0.5 * (h.normal + Vector(1.0, 1.0, 1.0));
+
                 return color;
             }
             None => {
