@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use materials::lambertian::Lambertian;
+use materials::{lambertian::Lambertian, metal::Metal};
 
 extern crate lodepng;
 extern crate rand;
@@ -36,10 +36,18 @@ fn main() {
         vector::Vector(0.6, 0.2, 0.2),
     ));
 
+    let basic_metal_material: Arc<Metal> = Arc::new(Metal::new(vector::Vector(0.8, 0.8, 0.8)));
+
     objects.push(sphere::Sphere::new(
         &vector::Vector(0.0, 0.0, -2.0),
         1.0,
         basic_lamb_material,
+    ));
+
+    objects.push(sphere::Sphere::new(
+        &vector::Vector(3.0, 0.0, -2.0),
+        1.0,
+        basic_metal_material,
     ));
 
     objects.push(sphere::Sphere::new(

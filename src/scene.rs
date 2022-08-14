@@ -73,8 +73,11 @@ impl Scene {
         match obj_hit {
             Some(h) => {
                 if crate::REFLECTION_DEPTH > depth {
-                    let d = h.p + h.normal + utils::random_vector_in_unit_sphere();
-                    color = 0.5 * self.color_model(get_ray(h.p, d - h.p), depth + 1);
+                    if let Some((scattered, attenuation)) = h.material.scatter(&r, &h) {
+                        color = attenuation * self.color_model(scattered, depth - 1)
+                    } else {
+                        color = Vector(0.0, 0.0, 0.0)
+                    }
                 } else {
                     color = Vector(0.0, 0.0, 0.0);
                 }

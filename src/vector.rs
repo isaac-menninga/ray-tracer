@@ -33,6 +33,10 @@ impl Vector {
         self.squared_length().sqrt()
     }
 
+    pub fn reflect(self, n: Vector) -> Vector {
+        self - 2.0 * self.dot(n) * n
+    }
+
     pub fn to_u8(&self) -> [u8; 3] {
         fn u(f: f32) -> u8 {
             if f < 0.0 {
@@ -62,6 +66,11 @@ impl Vector {
 
     pub fn print(&self) {
         println!("{} {} {}", self.x(), self.y(), self.x());
+    }
+
+    pub fn near_zero(self) -> bool {
+        const EPS: f32 = 1.0e-8;
+        self.0.abs() < EPS && self.1.abs() < EPS && self.2.abs() < EPS
     }
 }
 
