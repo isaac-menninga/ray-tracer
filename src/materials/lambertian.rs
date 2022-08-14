@@ -17,7 +17,12 @@ impl Lambertian {
 
 impl Scatter for Lambertian {
     fn scatter(&self, _: &Ray, hit: &Hit) -> Option<(Ray, Vector)> {
-        let target = hit.p + hit.normal + random_vector_in_unit_sphere();
+        let mut target = hit.p + hit.normal + random_vector_in_unit_sphere();
+
+        // guard against target - hit.p ~= 0
+        if target.near_zero() {
+            target = hit.normal;
+        }
         let scattered = Ray::new(hit.p, target - hit.p);
 
         Some((scattered, self.albedo))
