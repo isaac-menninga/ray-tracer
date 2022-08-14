@@ -1,42 +1,26 @@
-use crate::material::Material;
+use crate::material::Scatter;
 use crate::ray::Ray;
 use crate::vector::Vector;
 
-#[derive(Clone, Copy)]
 pub struct Hit {
     pub t: f32,
     pub p: Vector,
     pub normal: Vector,
-    pub material: Material,
+    pub material: dyn Scatter,
 }
 
-#[derive(Clone, Copy)]
 pub struct Sphere {
     pub center: Vector,
     pub radius: f32,
-    pub material: Material,
+    pub material: dyn Scatter,
 }
 
 impl Sphere {
-    pub fn new(
-        pos: &Vector,
-        r: f32,
-        ambient: &Vector,
-        diffuse: &Vector,
-        specular: &Vector,
-        shine: f32,
-        reflectiveness: f32,
-    ) -> Self {
+    pub fn new(pos: &Vector, r: f32, m: dyn Scatter) -> Self {
         Self {
             center: Vector(pos.x(), pos.y(), pos.z()),
             radius: r,
-            material: Material {
-                ambient: Vector(ambient.x(), ambient.y(), ambient.z()),
-                diffuse: Vector(diffuse.x(), diffuse.y(), diffuse.z()),
-                specular: Vector(specular.x(), specular.y(), specular.z()),
-                shine: shine,
-                reflectiveness: reflectiveness,
-            },
+            material: m,
         }
     }
 
@@ -69,7 +53,7 @@ impl Sphere {
                     t: t,
                     p: intersection,
                     normal: outward_normal,
-                    material: self.material,
+                    material: self.material.clone(),
                 });
             } else {
                 return None;

@@ -1,8 +1,9 @@
 use crate::camera::Camera;
-use crate::rand::Rng;
+use crate::material::Scatter;
 use crate::ray::*;
 use crate::sphere::Hit;
 use crate::sphere::Sphere;
+use crate::utils::*;
 use crate::vector::Vector;
 
 pub struct Scene {
@@ -62,24 +63,6 @@ impl Scene {
         }
 
         return min;
-    }
-
-    pub fn random_in_range(min: f32, max: f32) -> f32 {
-        return rand::thread_rng().gen_range(min, max);
-    }
-
-    pub fn random_vector_in_unit_sphere() -> Vector {
-        let vec = Vector(
-            Self::random_in_range(-1.0, 1.0),
-            Self::random_in_range(-1.0, 1.0),
-            Self::random_in_range(-1.0, 1.0),
-        );
-
-        if vec.length() <= 1.0 {
-            return vec.to_unit_vector();
-        } else {
-            return Self::random_vector_in_unit_sphere();
-        }
     }
 
     pub fn color_model(&self, r: Ray, depth: i32) -> Vector {

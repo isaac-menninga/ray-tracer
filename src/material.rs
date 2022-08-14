@@ -1,12 +1,7 @@
+use crate::ray::Ray;
+use crate::sphere::Hit;
 use crate::vector::Vector;
 
-#[derive(Clone, Copy)]
-pub struct Material {
-    pub ambient: Vector,
-    pub diffuse: Vector,
-    pub specular: Vector,
-    pub shine: f32,
-    pub reflectiveness: f32,
+pub trait Scatter<T: Scatter<T>> {
+    fn scatter(&self, ray: &Ray, hit: &Hit<T>) -> Option<(Ray, Vector)>;
 }
-
-impl Material {}
