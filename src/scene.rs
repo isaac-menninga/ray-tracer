@@ -1,9 +1,8 @@
 use crate::camera::Camera;
-use crate::material::Scatter;
 use crate::ray::*;
 use crate::sphere::Hit;
 use crate::sphere::Sphere;
-use crate::utils::*;
+use crate::utils;
 use crate::vector::Vector;
 
 pub struct Scene {
@@ -55,7 +54,9 @@ impl Scene {
                     None => min = Some(hit),
                     Some(prev) => {
                         if hit.t < prev.t {
-                            min = Some(hit)
+                            min = Some(hit);
+                        } else {
+                            min = Some(prev);
                         }
                     }
                 }
@@ -72,7 +73,7 @@ impl Scene {
         match obj_hit {
             Some(h) => {
                 if crate::REFLECTION_DEPTH > depth {
-                    let d = h.p + h.normal + Self::random_vector_in_unit_sphere();
+                    let d = h.p + h.normal + utils::random_vector_in_unit_sphere();
                     color = 0.5 * self.color_model(get_ray(h.p, d - h.p), depth + 1);
                 } else {
                     color = Vector(0.0, 0.0, 0.0);
@@ -104,8 +105,8 @@ impl Scene {
         for _ in 0..n_samples {
             let offset_direction = offset_amount
                 * Vector(
-                    Self::random_in_range(-1.0, 1.0),
-                    Self::random_in_range(-1.0, 1.0),
+                    utils::random_in_range(-1.0, 1.0),
+                    utils::random_in_range(-1.0, 1.0),
                     0.0,
                 )
                 + direction;

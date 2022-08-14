@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use crate::material::Scatter;
 use crate::ray::Ray;
 use crate::vector::Vector;
@@ -6,17 +8,17 @@ pub struct Hit {
     pub t: f32,
     pub p: Vector,
     pub normal: Vector,
-    pub material: dyn Scatter,
+    pub material: Arc<dyn Scatter>,
 }
 
 pub struct Sphere {
     pub center: Vector,
     pub radius: f32,
-    pub material: dyn Scatter,
+    pub material: Arc<dyn Scatter>,
 }
 
 impl Sphere {
-    pub fn new(pos: &Vector, r: f32, m: dyn Scatter) -> Self {
+    pub fn new(pos: &Vector, r: f32, m: Arc<dyn Scatter>) -> Self {
         Self {
             center: Vector(pos.x(), pos.y(), pos.z()),
             radius: r,

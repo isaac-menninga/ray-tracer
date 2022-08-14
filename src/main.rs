@@ -1,3 +1,7 @@
+use std::sync::Arc;
+
+use materials::lambertian::Lambertian;
+
 extern crate lodepng;
 extern crate rand;
 
@@ -24,16 +28,24 @@ fn main() {
 
     let mut objects: Vec<sphere::Sphere> = Vec::new();
 
+    let ground_material = Arc::new(materials::lambertian::Lambertian::new(vector::Vector(
+        0.9, 0.92, 0.92,
+    )));
+
+    let basic_lamb_material: Arc<Lambertian> = Arc::new(materials::lambertian::Lambertian::new(
+        vector::Vector(0.6, 0.2, 0.2),
+    ));
+
     objects.push(sphere::Sphere::new(
         &vector::Vector(0.0, 0.0, -2.0),
         1.0,
-        materials::lambertian::Lambertian::new(vector::Vector(0.6, 0.2, 0.2)),
+        basic_lamb_material,
     ));
 
     objects.push(sphere::Sphere::new(
         &vector::Vector(0.0, -1001.0, 0.0),
         1000.0,
-        materials::lambertian::Lambertian::new(vector::Vector(0.9, 0.93, 0.95)),
+        ground_material,
     ));
 
     let scene: scene::Scene = scene::Scene::new(c, objects);
