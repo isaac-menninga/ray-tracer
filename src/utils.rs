@@ -1,7 +1,7 @@
 use crate::rand::Rng;
 use crate::vector::Vector;
 
-pub fn random_in_range(min: f32, max: f32) -> f32 {
+pub fn random_in_range(min: f64, max: f64) -> f64 {
     return rand::thread_rng().gen_range(min, max);
 }
 

@@ -1,7 +1,10 @@
-use std::sync::Arc;
-
+use camera::Camera;
 use materials::{lambertian::Lambertian, metal::Metal};
+use sphere::Sphere;
+use std::sync::Arc;
+use vector::Vector;
 
+extern crate indicatif;
 extern crate lodepng;
 extern crate rand;
 
@@ -14,49 +17,58 @@ mod sphere;
 mod utils;
 mod vector;
 
-static ASPECT_RATIO: f32 = 16.0 / 9.0;
+static ASPECT_RATIO: f64 = 16.0 / 9.0;
 static VIEWPORT_WIDTH: i32 = 800;
-static FOCAL_LENGTH: f32 = 100.0;
-
-static ANTIALIAS_SAMPLES: i32 = 100;
-static REFLECTION_DEPTH: i32 = 50;
-
-static BACKGROUND_COLOR: vector::Vector = vector::Vector(0.5, 0.7, 1.0);
+static ANTIALIAS_SAMPLES: i32 = 200;
+static REFLECTION_DEPTH: i32 = 30;
+static BACKGROUND_COLOR: Vector = Vector(0.5, 0.7, 1.0);
 
 fn main() {
-    let c: camera::Camera = camera::Camera::new(vector::Vector(0.0, 0.0, 0.0), VIEWPORT_WIDTH);
+    // camera
+    let lookfrom = Vector(16.0, 1.6, 3.0);
+    let lookat = Vector(0.0, 0.0, 0.0);
+    let vup = Vector(0.0, 1.0, 0.0);
+    let dist_to_focus = 15.0;
+    let aperture = 0.08;
 
-    let mut objects: Vec<sphere::Sphere> = Vec::new();
+    let cam = Camera::new(
+        lookfrom,
+        lookat,
+        vup,
+        20.0,
+        ASPECT_RATIO,
+        aperture,
+        dist_to_focus,
+    );
 
-    let ground_material = Arc::new(materials::lambertian::Lambertian::new(vector::Vector(
-        0.9, 0.92, 0.92,
-    )));
+    let mut objects: Vec<Sphere> = Vec::new();
 
-    let basic_lamb_material: Arc<Lambertian> = Arc::new(materials::lambertian::Lambertian::new(
-        vector::Vector(0.6, 0.2, 0.2),
-    ));
+    // basic materials
+    let ground_material = Arc::new(Lambertian::new(Vector(0.7, 0.72, 0.62)));
 
-    let basic_metal_material: Arc<Metal> = Arc::new(Metal::new(vector::Vector(0.8, 0.8, 0.8)));
+    let red_lambertian: Arc<Lambertian> = Arc::new(Lambertian::new(Vector(0.6, 0.2, 0.2)));
+    let blue_lambertian: Arc<Lambertian> = Arc::new(Lambertian::new(Vector(0.2, 0.6, 0.2)));
+    let green_lambertian: Arc<Lambertian> = Arc::new(Lambertian::new(Vector(0.2, 0.2, 0.6)));
 
-    objects.push(sphere::Sphere::new(
-        &vector::Vector(0.0, 0.0, -2.0),
-        1.0,
-        basic_lamb_material,
-    ));
+    let metal: Arc<Metal> = Arc::new(Metal::new(Vector(0.6, 0.6, 0.65)));
 
-    objects.push(sphere::Sphere::new(
-        &vector::Vector(3.0, 0.0, -2.0),
-        1.0,
-        basic_metal_material,
-    ));
+    // setup scene objects
+    // diffuse material spheres
+    objects.push(Sphere::new(&Vector(0.0, -0.7, 0.4), 0.3, red_lambertian));
+    objects.push(Sphere::new(&Vector(0.7, -0.7, 0.0), 0.3, blue_lambertian));
+    objects.push(Sphere::new(&Vector(-0.7, -0.7, 0.8), 0.3, green_lambertian));
 
-    objects.push(sphere::Sphere::new(
-        &vector::Vector(0.0, -1001.0, 0.0),
+    // metal sphere
+    objects.push(Sphere::new(&Vector(-3.0, 0.0, 0.0), 1.0, metal));
+
+    // ground
+    objects.push(Sphere::new(
+        &Vector(0.0, -1001.0, 0.0),
         1000.0,
         ground_material,
     ));
 
-    let scene: scene::Scene = scene::Scene::new(c, objects);
+    let scene: scene::Scene = scene::Scene::new(cam, objects);
 
     scene.render();
 }

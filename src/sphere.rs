@@ -5,7 +5,7 @@ use crate::ray::Ray;
 use crate::vector::Vector;
 
 pub struct Hit {
-    pub t: f32,
+    pub t: f64,
     pub p: Vector,
     pub normal: Vector,
     pub material: Arc<dyn Scatter>,
@@ -13,12 +13,12 @@ pub struct Hit {
 
 pub struct Sphere {
     pub center: Vector,
-    pub radius: f32,
+    pub radius: f64,
     pub material: Arc<dyn Scatter>,
 }
 
 impl Sphere {
-    pub fn new(pos: &Vector, r: f32, m: Arc<dyn Scatter>) -> Self {
+    pub fn new(pos: &Vector, r: f64, m: Arc<dyn Scatter>) -> Self {
         Self {
             center: Vector(pos.x(), pos.y(), pos.z()),
             radius: r,

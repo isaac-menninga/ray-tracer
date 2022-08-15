@@ -7,3 +7,4 @@ edition = "2018"
 [dependencies]
 rand = "0.3.14"
 lodepng = "3.5.1"
+indicatif = "0.17.0"

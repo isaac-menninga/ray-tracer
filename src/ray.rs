@@ -14,7 +14,7 @@ impl Ray {
         }
     }
 
-    pub fn line_to_p(&self, p: f32) -> Vector {
+    pub fn line_to_p(&self, p: f64) -> Vector {
         self.origin + p * self.direction
     }
 }

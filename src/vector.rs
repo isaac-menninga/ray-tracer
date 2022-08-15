@@ -1,20 +1,20 @@
 use std::ops::*;
 
 #[derive(Clone, Copy, Debug)]
-pub struct Vector(pub f32, pub f32, pub f32);
+pub struct Vector(pub f64, pub f64, pub f64);
 
 impl Vector {
-    pub fn x(&self) -> f32 {
+    pub fn x(&self) -> f64 {
         self.0
     }
-    pub fn y(&self) -> f32 {
+    pub fn y(&self) -> f64 {
         self.1
     }
-    pub fn z(&self) -> f32 {
+    pub fn z(&self) -> f64 {
         self.2
     }
 
-    pub fn dot(&self, other: Vector) -> f32 {
+    pub fn dot(&self, other: Vector) -> f64 {
         self.0 * other.0 + self.1 * other.1 + self.2 * other.2
     }
 
@@ -26,10 +26,10 @@ impl Vector {
         )
     }
 
-    pub fn squared_length(self) -> f32 {
+    pub fn squared_length(self) -> f64 {
         self.dot(self)
     }
-    pub fn length(self) -> f32 {
+    pub fn length(self) -> f64 {
         self.squared_length().sqrt()
     }
 
@@ -38,7 +38,7 @@ impl Vector {
     }
 
     pub fn to_u8(&self) -> [u8; 3] {
-        fn u(f: f32) -> u8 {
+        fn u(f: f64) -> u8 {
             if f < 0.0 {
                 0
             } else if f >= 1.0 {
@@ -69,7 +69,7 @@ impl Vector {
     }
 
     pub fn near_zero(self) -> bool {
-        const EPS: f32 = 1.0e-8;
+        const EPS: f64 = 1.0e-8;
         self.0.abs() < EPS && self.1.abs() < EPS && self.2.abs() < EPS
     }
 }
@@ -95,7 +95,7 @@ impl Sub for Vector {
     }
 }
 
-impl Mul<Vector> for f32 {
+impl Mul<Vector> for f64 {
     type Output = Vector;
     fn mul(self, v: Vector) -> Vector {
         Vector(self * v.0, self * v.1, self * v.2)
@@ -109,9 +109,9 @@ impl Mul<Vector> for Vector {
     }
 }
 
-impl Div<f32> for Vector {
+impl Div<f64> for Vector {
     type Output = Vector;
-    fn div(self, r: f32) -> Vector {
+    fn div(self, r: f64) -> Vector {
         (1.0 / r) * self
     }
 }
