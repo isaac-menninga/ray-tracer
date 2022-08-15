@@ -14,10 +14,11 @@ pub struct Scene {
     pub height: i32,
     pub width: i32,
     pub pixels: Vec<lodepng::RGB<u8>>,
+    filename: String,
 }
 
 impl Scene {
-    pub fn new(c: Camera, o: Vec<Sphere>) -> Self {
+    pub fn new(c: Camera, o: Vec<Sphere>, filename: String) -> Self {
         let pixels: Vec<lodepng::RGB<u8>> = Vec::new();
         let h = (crate::VIEWPORT_WIDTH as f64 / crate::ASPECT_RATIO) as i32;
         let w = crate::VIEWPORT_WIDTH;
@@ -28,6 +29,7 @@ impl Scene {
             height: h,
             width: w,
             pixels: pixels,
+            filename: filename,
         }
     }
 
@@ -48,7 +50,7 @@ impl Scene {
                 self.pixels.push(color.to_rgb());
             }
         }
-        self.make_png("out.png".to_string());
+        self.make_png(self.filename.clone());
         progress.finish();
         println!("Render complete.");
     }

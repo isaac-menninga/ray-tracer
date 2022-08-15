@@ -1,7 +1,7 @@
 use camera::Camera;
 use materials::{lambertian::Lambertian, metal::Metal};
 use sphere::Sphere;
-use std::sync::Arc;
+use std::{env, sync::Arc};
 use vector::Vector;
 
 extern crate indicatif;
@@ -68,7 +68,14 @@ fn main() {
         ground_material,
     ));
 
-    let scene: scene::Scene = scene::Scene::new(cam, objects);
+    // get filename if present
+    let mut filename = "out/out.png".to_string();
+    if let Some(arg1) = env::args().nth(1) {
+        let f = format!("out/{}.png", arg1);
+        filename = f;
+    }
+
+    let scene: scene::Scene = scene::Scene::new(cam, objects, filename);
 
     scene.render();
 }
