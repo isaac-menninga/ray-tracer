@@ -18,9 +18,9 @@ mod utils;
 mod vector;
 
 static ASPECT_RATIO: f64 = 16.0 / 9.0;
-static VIEWPORT_WIDTH: i32 = 800;
-static ANTIALIAS_SAMPLES: i32 = 200;
-static REFLECTION_DEPTH: i32 = 30;
+static VIEWPORT_WIDTH: i32 = 1600;
+static ANTIALIAS_SAMPLES: i32 = 300;
+static REFLECTION_DEPTH: i32 = 100;
 static BACKGROUND_COLOR: Vector = Vector(0.5, 0.7, 1.0);
 
 fn main() {

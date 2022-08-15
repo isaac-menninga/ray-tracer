@@ -1,12 +1,8 @@
 ## Ray Tracer in Rust 
 
-This is a ray tracer written in Rust. I wrote this as a Rust learning exercise, and based it off a few tutorials (mainly https://github.com/fralken/ray-tracing-in-one-weekend). I wanted to challenge myself as much as possible by loosely basing my code on examples, rather than following a well put together tutorial. The result is that the images are low resolution, with subpar quality. I'm really happy with the result of this exercise, but could certainly improve the code and the resulting images with some additional time. 
+This is a ray tracer written in Rust. I wrote this as a Rust learning exercise in 2020 based on Peter Shirley's write-up found [here](https://raytracing.github.io/). I recently (Summer 2022) rewrote much of what I originally had. This project is still work in progress, but I'm really happy with the results so far.
 
-## Examples
+## Example
 
-Here are some images I rendered with this program: 
-
-<img src="https://github.com/isaac-menninga/ray-tracer/blob/main/lil_spheres.png" width="300" />
-
-<img src="https://github.com/isaac-menninga/ray-tracer/blob/main/out.png" width="300" />
+<img src="https://github.com/isaac-menninga/ray-tracer/blob/main/example.png" width="1600" />
 
